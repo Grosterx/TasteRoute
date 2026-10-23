@@ -6,7 +6,7 @@ x-backend-env: &backend-env
   DATABASE_URL: postgres://tasteroute:tasteroute@postgres:5432/tasteroute?sslmode=disable
   REDIS_URL: redis://redis:6379/0
   GUEST_JWT_SECRET: "${GUEST_JWT_SECRET:-dev-only-secret-change-me-0123456789}"
-  ADMIN_TOKEN: "${ADMIN_TOKEN:-dev-admin-token}"
+  ADMIN_TOKEN: "${ADMIN_TOKEN:-admin-local-demo-123456}"
   CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}"
 
 services:

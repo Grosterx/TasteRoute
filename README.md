@@ -36,9 +36,11 @@ docker compose --profile seed run --rm seed
 
 - Web: http://localhost:5173
 - API health: http://localhost:8080/tasteroute/api/healthz
-- Админка: http://localhost:5173/admin, локальный токен `dev-admin-token`
+- Админка: http://localhost:5173/admin, локальный токен `dev-admin-token` или `ADMIN_TOKEN` из `.env`
 
 `migrate` запускается автоматически при старте API. Seed выполняется отдельной командой.
+
+Если в корне есть локальный `.env`, Docker Compose использует из него `GUEST_JWT_SECRET`, `ADMIN_TOKEN` и `CORS_ORIGINS`.
 
 Проверка полного сценария:
 

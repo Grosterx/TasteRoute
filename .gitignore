@@ -1,0 +1,30 @@
+# secrets
+.env
+.env.*
+!.env.example
+web/.env
+web/.env.*
+!web/.env.example
+
+# go
+/bin/
+/tasteroute-api
+/tasteroute-migrate
+/tasteroute-seed
+
+# frontend
+web/node_modules/
+web/dist/
+web/.vite/
+web/dev-dist/
+*.tsbuildinfo
+
+# editors / os
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# local data
+*.log
+tmp/

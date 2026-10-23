@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: tasteroute-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: sh -c "./migrate up && exec ./api"
+    healthCheckPath: /tasteroute/api/healthz
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_PATH_PREFIX
+        value: /tasteroute/api
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GUEST_JWT_SECRET
+        generateValue: true
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://tasteroute-web.onrender.com
+
+  - type: web
+    name: tasteroute-web
+    runtime: static
+    branch: main
+    autoDeploy: true
+    buildCommand: cd web && corepack enable && pnpm install --frozen-lockfile && pnpm build
+    staticPublishPath: ./web/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://tasteroute-api.onrender.com/tasteroute/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

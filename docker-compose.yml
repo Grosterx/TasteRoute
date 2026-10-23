@@ -1,0 +1,96 @@
+name: tasteroute
+
+x-backend-env: &backend-env
+  APP_ENV: development
+  APP_PATH_PREFIX: /tasteroute/api
+  DATABASE_URL: postgres://tasteroute:tasteroute@postgres:5432/tasteroute?sslmode=disable
+  REDIS_URL: redis://redis:6379/0
+  GUEST_JWT_SECRET: dev-only-secret-change-me-0123456789
+  ADMIN_TOKEN: dev-admin-token
+  CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: tasteroute
+      POSTGRES_PASSWORD: tasteroute
+      POSTGRES_DB: tasteroute
+    volumes:
+      - tasteroute_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tasteroute -d tasteroute"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - tasteroute_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["./migrate", "up"]
+    environment: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["./seed"]
+    environment: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    profiles: ["seed"]
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["./api"]
+    environment: *backend-env
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/tasteroute/api/healthz >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /tasteroute/api
+    ports:
+      - "5173:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  tasteroute_pg:
+  tasteroute_redis:

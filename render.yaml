@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: tasteroute-api
+    name: tasteroute-api-grosterx
     runtime: docker
     plan: free
     region: frankfurt
@@ -24,10 +24,10 @@ services:
       - key: ADMIN_TOKEN
         generateValue: true
       - key: CORS_ORIGINS
-        value: https://tasteroute-web.onrender.com
+        value: https://tasteroute-web-grosterx.onrender.com
 
   - type: web
-    name: tasteroute-web
+    name: tasteroute-web-grosterx
     runtime: static
     branch: main
     autoDeploy: true
@@ -35,7 +35,7 @@ services:
     staticPublishPath: ./web/dist
     envVars:
       - key: VITE_API_BASE_URL
-        value: https://tasteroute-api.onrender.com/tasteroute/api
+        value: https://tasteroute-api-grosterx.onrender.com/tasteroute/api
     routes:
       - type: rewrite
         source: /*

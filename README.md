@@ -159,7 +159,7 @@ node scripts/smoke.mjs
 Для удалённого API:
 
 ```powershell
-$env:API_BASE='https://tasteroute-api.onrender.com/tasteroute/api'
+$env:API_BASE='https://tasteroute-api-grosterx.onrender.com/tasteroute/api'
 $env:ADMIN_TOKEN='...'
 node scripts/smoke.mjs
 ```
@@ -168,7 +168,7 @@ node scripts/smoke.mjs
 
 ### 1. GitHub
 
-Создать публичный репозиторий `Grosterx/tasteroute` и запушить `main`. CI проверит Go и frontend.
+Создать публичный репозиторий `Grosterx/TasteRoute` и запушить `main`. CI проверит Go и frontend.
 
 ### 2. Supabase
 
@@ -187,14 +187,10 @@ node scripts/smoke.mjs
 
 1. New → Blueprint → подключить репозиторий.
 2. Render прочитает `render.yaml` и создаст:
-   - `tasteroute-api` — Docker web service;
-   - `tasteroute-web` — static site.
+   - `tasteroute-api-grosterx` — Docker web service;
+   - `tasteroute-web-grosterx` — static site.
 3. Заполнить `DATABASE_URL` и `REDIS_URL` в API-сервисе.
 4. `GUEST_JWT_SECRET` и `ADMIN_TOKEN` Render сгенерирует сам.
-5. Если имена сервисов заняты, обновить:
-   - `CORS_ORIGINS` в API;
-   - `VITE_API_BASE_URL` у static site;
-   - URL в README и `agents.md`.
 
 API при старте выполняет `./migrate up`, затем запускает сервер. Это описано в `dockerCommand`.
 
@@ -213,9 +209,9 @@ go run ./cmd/seed
 
 ### 6. Проверка
 
-- Web: `https://tasteroute-web.onrender.com`
-- API: `https://tasteroute-api.onrender.com/tasteroute/api/healthz`
-- Админка: `https://tasteroute-web.onrender.com/admin`
+- Web: `https://tasteroute-web-grosterx.onrender.com`
+- API: `https://tasteroute-api-grosterx.onrender.com/tasteroute/api/healthz`
+- Админка: `https://tasteroute-web-grosterx.onrender.com/admin`
 - `ADMIN_TOKEN` смотреть в Environment API-сервиса Render.
 
 ## Ограничения бесплатного тарифа

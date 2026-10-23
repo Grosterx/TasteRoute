@@ -1,0 +1,49 @@
+2026-10-23T18:18:08Z INF Thank you for trying Cloudflare Tunnel. Doing so, without a Cloudflare account, is a quick way to experiment and try it out. However, be aware that these account-less Tunnels have no uptime guarantee, are subject to the Cloudflare Online Services Terms of Use (https://www.cloudflare.com/website-terms/), and Cloudflare reserves the right to investigate your use of Tunnels for violations of such terms. If you intend to use Tunnels in production you should use a pre-created named tunnel by following: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps
+2026-10-23T18:18:08Z INF Requesting new quick Tunnel on trycloudflare.com...
+2026-10-23T18:18:13Z INF +--------------------------------------------------------------------------------------------+
+2026-10-23T18:18:13Z INF |  Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):  |
+2026-10-23T18:18:13Z INF |  https://besides-promotions-entitled-neon.trycloudflare.com                                |
+2026-10-23T18:18:13Z INF +--------------------------------------------------------------------------------------------+
+2026-10-23T18:18:13Z INF Cannot determine default configuration path. No file [config.yml config.yaml] in [~/.cloudflared ~/.cloudflare-warp ~/cloudflare-warp]
+2026-10-23T18:18:13Z INF Version 2026.10.3 (Checksum 76b2805253d0d6ffacb092a7acfbee99e7af6917835c0c5410e23f3ef5052da2)
+2026-10-23T18:18:13Z INF GOOS: windows, GOVersion: go1.27.3, GoArch: amd64
+2026-10-23T18:18:13Z INF Settings: map[ha-connections:1 protocol:quic url:http://localhost:5173]
+2026-10-23T18:18:13Z INF cloudflared will not automatically update on Windows systems.
+2026-10-23T18:18:13Z INF Generated Connector ID: 5f0cc306-2e5d-4132-8b09-69b276407592
+2026-10-23T18:18:13Z INF Initial protocol quic
+2026-10-23T18:18:13Z INF ICMP proxy will use 192.168.0.11 as source for IPv4
+2026-10-23T18:18:13Z INF ICMP proxy will use fe80::4cc:ba59:e2ea:e12b in zone Беспроводная сеть as source for IPv6
+2026-10-23T18:18:13Z INF cloudflared does not support loading the system root certificate pool on Windows. Please use --origin-ca-pool <PATH> to specify the path to the certificate pool
+2026-10-23T18:18:13Z INF ICMP proxy will use 192.168.0.11 as source for IPv4
+2026-10-23T18:18:13Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=0 event=0 ip=198.41.200.33
+2026-10-23T18:18:13Z INF +-------------------------------------------------------------------------------------+
+2026-10-23T18:18:13Z INF |                               CONNECTIVITY PRE-CHECKS                               |
+2026-10-23T18:18:13Z INF +-------------------------------------------------------------------------------------+
+2026-10-23T18:18:13Z INF |  COMPONENT         TARGET                     STATUS  DETAILS                       |
+2026-10-23T18:18:13Z INF |  DNS Resolution    region1.v2.argotunnel.com  PASS    DNS Resolved successfully     |
+2026-10-23T18:18:13Z INF |  DNS Resolution    region2.v2.argotunnel.com  PASS    DNS Resolved successfully     |
+2026-10-23T18:18:13Z INF |  UDP Connectivity  region1.v2.argotunnel.com  PASS    QUIC connection successful    |
+2026-10-23T18:18:13Z INF |  UDP Connectivity  region2.v2.argotunnel.com  PASS    QUIC connection successful    |
+2026-10-23T18:18:13Z INF |  TCP Connectivity  region1.v2.argotunnel.com  PASS    HTTP/2 connection successful  |
+2026-10-23T18:18:13Z INF |  TCP Connectivity  region2.v2.argotunnel.com  PASS    HTTP/2 connection successful  |
+2026-10-23T18:18:13Z INF |  Cloudflare API    api.cloudflare.com:443     PASS    API is reachable              |
+2026-10-23T18:18:13Z INF |                                                                                     |
+2026-10-23T18:18:13Z INF |  SUMMARY: Environment is healthy. cloudflared will use 'quic' as primary protocol.  |
+2026-10-23T18:18:13Z INF +-------------------------------------------------------------------------------------+
+2026-10-23T18:18:13Z INF precheck component="DNS Resolution" details="DNS Resolved successfully" run_id=d1bda9a6-7bc2-479f-8fec-e79c93d026cc status=pass target=region1.v2.argotunnel.com
+2026-10-23T18:18:13Z INF precheck component="DNS Resolution" details="DNS Resolved successfully" run_id=d1bda9a6-7bc2-479f-8fec-e79c93d026cc status=pass target=region2.v2.argotunnel.com
+2026-10-23T18:18:13Z INF precheck component="UDP Connectivity" details="QUIC connection successful" run_id=d1bda9a6-7bc2-479f-8fec-e79c93d026cc status=pass target=region1.v2.argotunnel.com
+2026-10-23T18:18:13Z INF precheck component="UDP Connectivity" details="QUIC connection successful" run_id=d1bda9a6-7bc2-479f-8fec-e79c93d026cc status=pass target=region2.v2.argotunnel.com
+2026-10-23T18:18:13Z INF precheck component="TCP Connectivity" details="HTTP/2 connection successful" run_id=d1bda9a6-7bc2-479f-8fec-e79c93d026cc status=pass target=region1.v2.argotunnel.com
+2026-10-23T18:18:13Z INF precheck component="TCP Connectivity" details="HTTP/2 connection successful" run_id=d1bda9a6-7bc2-479f-8fec-e79c93d026cc status=pass target=region2.v2.argotunnel.com
+2026-10-23T18:18:13Z INF precheck component="Cloudflare API" details="API is reachable" run_id=d1bda9a6-7bc2-479f-8fec-e79c93d026cc status=pass target=api.cloudflare.com:443
+2026-10-23T18:18:13Z INF precheck complete hard_fail=false run_id=d1bda9a6-7bc2-479f-8fec-e79c93d026cc suggested_protocol=quic
+2026-10-23T18:18:13Z INF ICMP proxy will use fe80::4cc:ba59:e2ea:e12b in zone Беспроводная сеть as source for IPv6
+2026-10-23T18:18:13Z INF Starting metrics server on 127.0.0.1:20241/metrics
+2026-10-23T18:18:18Z ERR Register tunnel error from server side error="context deadline exceeded" connIndex=0 event=0 ip=198.41.200.33
+2026-10-23T18:18:18Z INF Retrying connection in up to 2s connIndex=0 event=0 ip=198.41.200.33
+2026-10-23T18:18:19Z ERR initial tunnel connection failed error="control stream error: context deadline exceeded"
+2026-10-23T18:18:19Z INF Tunnel server stopped
+2026-10-23T18:18:19Z ERR Initiating shutdown error="control stream error: context deadline exceeded"
+2026-10-23T18:18:19Z INF Metrics server stopped
+control stream error: context deadline exceeded

@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { MapPinned, ShieldCheck } from 'lucide-react'
+import { MapPinned, ShieldCheck, Wand2 } from 'lucide-react'
 import { cn } from '../lib/utils'
 
 function navClass({ isActive }: { isActive: boolean }) {
@@ -30,6 +30,12 @@ export function Layout() {
           <nav className="flex items-center gap-1">
             <NavLink to="/" end className={navClass}>
               Главная
+            </NavLink>
+            <NavLink to="/fun" className={navClass} aria-label="Гастро-фишки">
+              <span className="flex items-center gap-1.5">
+                <Wand2 size={15} />
+                <span className="hidden sm:inline">Фишки</span>
+              </span>
             </NavLink>
             <NavLink to="/admin" className={navClass}>
               <span className="flex items-center gap-1.5">

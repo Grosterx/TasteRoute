@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Heart, MapPinned, Route, Sparkles, Users } from 'lucide-react'
+import { funFeatures } from '../lib/fun'
+import { FunFeatureCard } from '../components/FunFeatureCard'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 
@@ -94,6 +96,40 @@ export function Home() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section>
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="eyebrow">Гастро-фишки</p>
+            <h2 className="mt-3 font-display text-3xl font-bold text-cream-50 sm:text-4xl">
+              Сначала погадай, потом иди есть
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-cream-300/60">
+              Две лёгкие забавы для разгона аппетита. Узнай свой вкус и сразу преврати результат в
+              маршрут с друзьями.
+            </p>
+          </div>
+          <Link
+            to="/fun"
+            className="hidden shrink-0 items-center gap-1.5 text-sm font-semibold text-saffron-300 transition hover:text-saffron-400 sm:inline-flex"
+          >
+            Все фишки
+            <ArrowRight size={15} />
+          </Link>
+        </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {funFeatures.map((feature) => (
+            <FunFeatureCard key={feature.id} feature={feature} />
+          ))}
+        </div>
+        <Link
+          to="/fun"
+          className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-saffron-300 transition hover:text-saffron-400 sm:hidden"
+        >
+          Все фишки
+          <ArrowRight size={15} />
+        </Link>
       </section>
 
       <section>

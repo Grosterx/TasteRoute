@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Loader2, MapPin, Sparkles } from 'lucide-react'
 import { api } from '../lib/api'
+import { findFunResult } from '../lib/fun'
 import { saveSession } from '../lib/session'
+import { FunIconGlyph } from '../components/FunIcon'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 
@@ -11,6 +13,8 @@ export function CreateRoom() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const vibe = findFunResult(searchParams.get('fun'), searchParams.get('result'))
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -68,6 +72,25 @@ export function CreateRoom() {
             Тольятти
             <span className="ml-auto text-xs text-cream-300/40">город MVP</span>
           </div>
+
+          {vibe ? (
+            <div className="flex items-start gap-3 rounded-2xl border border-saffron-400/20 bg-saffron-400/[0.06] px-4 py-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-saffron-400/15 text-saffron-300">
+                <FunIconGlyph name={vibe.icon} size={19} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-saffron-300/70">
+                  Вайб маршрута
+                </p>
+                <p className="mt-1 font-display text-lg font-bold leading-tight text-cream-50">
+                  {vibe.title}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-cream-300/55">
+                  Соберём комнату под это настроение — друзья подключатся по ссылке.
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           <div>
             <label htmlFor="name" className="field-label">

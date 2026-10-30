@@ -12,14 +12,22 @@
 
   html {
     background: #0d0b09;
+    overflow-x: clip;
   }
 
   body {
     @apply min-h-screen bg-ink-950 text-cream-100 antialiased;
+    max-width: 100%;
+    overflow-x: clip;
     background-image:
       radial-gradient(circle at 12% 0%, rgba(231, 154, 32, 0.14), transparent 34rem),
       radial-gradient(circle at 92% 12%, rgba(74, 159, 106, 0.09), transparent 30rem),
       linear-gradient(180deg, #0d0b09 0%, #100d0a 55%, #0d0b09 100%);
+  }
+
+  #root {
+    max-width: 100%;
+    overflow-x: clip;
   }
 
   ::selection {

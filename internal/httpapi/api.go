@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -32,25 +33,59 @@ func New(cfg config.Config, db *pgxpool.Pool, rdb *redis.Client, hub *ws.Hub) ht
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Logger)
+	r.Use(securityHeaders(cfg.AppEnv))
 	r.Use(corsMiddleware(cfg.CORSOrigins))
 
 	mount := func(r chi.Router) {
 		r.Get("/healthz", api.health)
-		r.Post("/rooms", api.createRoom)
+		r.Get("/public/config", api.publicConfig)
+
+		r.Get("/public/restaurants", api.publicRestaurants)
+		r.Get("/public/restaurants/{slug}", api.publicRestaurant)
+		r.With(api.rateLimit("view", 60, time.Minute)).Post("/public/restaurants/{slug}/view", api.trackRestaurantView)
+		r.With(api.rateLimit("sales-lead", 5, 10*time.Minute)).Post("/sales-leads", api.createSalesLead)
+		r.With(api.rateLimit("restaurant-login", 10, time.Minute)).Post("/restaurant/login", api.restaurantLogin)
+
+		r.With(api.rateLimit("rooms-create", 30, time.Minute)).Post("/rooms", api.createRoom)
 		r.Get("/rooms/{code}", api.getRoom)
-		r.Post("/rooms/{code}/join", api.joinRoom)
+		r.With(api.rateLimit("rooms-join", 30, time.Minute)).Post("/rooms/{code}/join", api.joinRoom)
 		r.Get("/ws", wsHandler.ServeHTTP)
 
 		r.Group(func(r chi.Router) {
 			r.Use(api.auth)
 			r.Get("/rooms/{code}/catalog", api.catalog)
 			r.Get("/rooms/{code}/route", api.route)
-			r.Post("/leads", api.createLead)
+			r.Get("/rooms/{code}/selection", api.selection)
+			r.With(api.rateLimit("booking", 20, 10*time.Minute)).Post("/bookings", api.createBooking)
+			r.With(api.rateLimit("lead", 10, 10*time.Minute)).Post("/leads", api.createLead)
 		})
 
 		r.Group(func(r chi.Router) {
+			r.Use(api.restaurantAuth)
+			r.Get("/restaurant/me", api.restaurantMe)
+			r.Patch("/restaurant/me", api.updateRestaurantProfile)
+			r.Post("/restaurant/change-password", api.changeRestaurantPassword)
+			r.Get("/restaurant/dishes", api.restaurantDishes)
+			r.Post("/restaurant/dishes", api.createRestaurantDish)
+			r.Patch("/restaurant/dishes/{dishID}", api.updateRestaurantDish)
+			r.Delete("/restaurant/dishes/{dishID}", api.archiveRestaurantDish)
+			r.Get("/restaurant/bookings", api.restaurantBookings)
+			r.Patch("/restaurant/bookings/{bookingID}", api.updateRestaurantBooking)
+			r.Get("/restaurant/analytics", api.restaurantAnalytics)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(api.rateLimit("admin", 180, time.Minute))
 			r.Use(api.adminAuth)
 			r.Get("/admin/leads", api.adminLeads)
+			r.Get("/admin/restaurants", api.adminRestaurants)
+			r.Post("/admin/restaurants", api.adminCreateRestaurant)
+			r.Patch("/admin/restaurants/{restaurantID}", api.adminUpdateRestaurant)
+			r.Post("/admin/restaurants/{restaurantID}/account", api.adminSetRestaurantAccount)
+			r.Get("/admin/sales-leads", api.adminSalesLeads)
+			r.Patch("/admin/sales-leads/{leadID}", api.adminUpdateSalesLead)
+			r.Get("/admin/bookings", api.adminBookings)
+			r.Get("/admin/metrics", api.adminMetrics)
 		})
 	}
 

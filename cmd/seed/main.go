@@ -13,6 +13,7 @@ import (
 
 type restaurantSeed struct {
 	ID       string  `json:"id"`
+	Slug     string  `json:"slug"`
 	Name     string  `json:"name"`
 	Address  string  `json:"address"`
 	Lat      float64 `json:"lat"`
@@ -30,6 +31,8 @@ type dishSeed struct {
 	Price        int      `json:"price"`
 	Tags         []string `json:"tags"`
 	ImageURL     string   `json:"image_url"`
+	Category     string   `json:"category"`
+	SortOrder    int      `json:"sort_order"`
 	Active       bool     `json:"active"`
 }
 
@@ -64,10 +67,14 @@ func main() {
 	}
 
 	for _, r := range restaurants {
+		if r.Slug == "" {
+			r.Slug = "rest-" + r.ID[len(r.ID)-8:]
+		}
 		_, err := db.Exec(ctx, `
-			INSERT INTO restaurants (id, name, address, lat, lon, cuisine, image_url, active)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			INSERT INTO restaurants (id, slug, name, address, lat, lon, cuisine, image_url, active)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 			ON CONFLICT (id) DO UPDATE SET
+				slug = EXCLUDED.slug,
 				name = EXCLUDED.name,
 				address = EXCLUDED.address,
 				lat = EXCLUDED.lat,
@@ -75,7 +82,7 @@ func main() {
 				cuisine = EXCLUDED.cuisine,
 				image_url = EXCLUDED.image_url,
 				active = EXCLUDED.active`,
-			r.ID, r.Name, r.Address, r.Lat, r.Lon, r.Cuisine, r.ImageURL, r.Active,
+			r.ID, r.Slug, r.Name, r.Address, r.Lat, r.Lon, r.Cuisine, r.ImageURL, r.Active,
 		)
 		if err != nil {
 			fail("upsert restaurant %s: %v", r.Name, err)
@@ -83,9 +90,12 @@ func main() {
 	}
 
 	for _, d := range dishes {
+		if d.Category == "" && len(d.Tags) > 0 {
+			d.Category = d.Tags[0]
+		}
 		_, err := db.Exec(ctx, `
-			INSERT INTO dishes (id, restaurant_id, name, description, price, tags, image_url, active)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			INSERT INTO dishes (id, restaurant_id, name, description, price, tags, image_url, category, sort_order, active)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 			ON CONFLICT (id) DO UPDATE SET
 				restaurant_id = EXCLUDED.restaurant_id,
 				name = EXCLUDED.name,
@@ -93,8 +103,11 @@ func main() {
 				price = EXCLUDED.price,
 				tags = EXCLUDED.tags,
 				image_url = EXCLUDED.image_url,
+				category = EXCLUDED.category,
+				sort_order = EXCLUDED.sort_order,
 				active = EXCLUDED.active`,
-			d.ID, d.RestaurantID, d.Name, d.Description, d.Price, d.Tags, d.ImageURL, d.Active,
+			d.ID, d.RestaurantID, d.Name, d.Description, d.Price, d.Tags, d.ImageURL,
+			d.Category, d.SortOrder, d.Active,
 		)
 		if err != nil {
 			fail("upsert dish %s: %v", d.Name, err)

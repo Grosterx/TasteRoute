@@ -32,3 +32,30 @@ func TestParseRejectsGarbage(t *testing.T) {
 		t.Fatal("expected an error")
 	}
 }
+
+func TestIssueAndParseRestaurant(t *testing.T) {
+	secret := "0123456789abcdef0123456789abcdef"
+	token, err := IssueRestaurant(secret, "account-1", "restaurant-1", "owner", 3)
+	if err != nil {
+		t.Fatalf("IssueRestaurant() error = %v", err)
+	}
+	claims, err := ParseRestaurant(secret, token)
+	if err != nil {
+		t.Fatalf("ParseRestaurant() error = %v", err)
+	}
+	if claims.AccountID != "account-1" || claims.RestaurantID != "restaurant-1" ||
+		claims.Role != "owner" || claims.TokenVersion != 3 {
+		t.Fatalf("unexpected claims: %#v", claims)
+	}
+}
+
+func TestParseRestaurantRejectsGuestToken(t *testing.T) {
+	secret := "0123456789abcdef0123456789abcdef"
+	token, err := Issue(secret, "participant-1", "ABC234")
+	if err != nil {
+		t.Fatalf("Issue() error = %v", err)
+	}
+	if _, err := ParseRestaurant(secret, token); err == nil {
+		t.Fatal("expected an error")
+	}
+}

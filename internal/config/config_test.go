@@ -7,9 +7,11 @@ func setBaseEnv(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://localhost/tasteroute")
 	t.Setenv("REDIS_URL", "redis://localhost:6379/0")
 	t.Setenv("GUEST_JWT_SECRET", "0123456789abcdef")
+	t.Setenv("RESTAURANT_JWT_SECRET", "fedcba9876543210")
 	t.Setenv("ADMIN_TOKEN", "test-admin-token")
 	t.Setenv("APP_PATH_PREFIX", "/tasteroute/api/")
 	t.Setenv("CORS_ORIGINS", "http://localhost:5173, http://127.0.0.1:5173/")
+	t.Setenv("PUBLIC_APP_URL", "https://demo.example.com/")
 }
 
 func TestLoad(t *testing.T) {
@@ -24,6 +26,9 @@ func TestLoad(t *testing.T) {
 	if len(cfg.CORSOrigins) != 2 || cfg.CORSOrigins[1] != "http://127.0.0.1:5173" {
 		t.Fatalf("origins = %#v", cfg.CORSOrigins)
 	}
+	if cfg.PublicAppURL != "https://demo.example.com" {
+		t.Fatalf("public app url = %q", cfg.PublicAppURL)
+	}
 }
 
 func TestLoadRequiresGuestSecret(t *testing.T) {
@@ -31,6 +36,14 @@ func TestLoadRequiresGuestSecret(t *testing.T) {
 	t.Setenv("GUEST_JWT_SECRET", "")
 	if _, err := Load(); err == nil {
 		t.Fatal("expected an error for missing GUEST_JWT_SECRET")
+	}
+}
+
+func TestLoadRequiresRestaurantSecret(t *testing.T) {
+	setBaseEnv(t)
+	t.Setenv("RESTAURANT_JWT_SECRET", "")
+	if _, err := Load(); err == nil {
+		t.Fatal("expected an error for missing RESTAURANT_JWT_SECRET")
 	}
 }
 

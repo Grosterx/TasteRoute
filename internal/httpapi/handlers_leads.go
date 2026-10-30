@@ -34,6 +34,10 @@ func (a *API) createLead(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "не удалось загрузить комнату")
 		return
 	}
+	if found.Mode == "restaurant" {
+		writeError(w, http.StatusBadRequest, "для комнаты ресторана оставьте бронирование")
+		return
+	}
 
 	err = lead.Create(r.Context(), a.db, found.ID, claims.ParticipantID, body.Name, body.Phone, body.Comment)
 	if errors.Is(err, lead.ErrInvalidLead) {

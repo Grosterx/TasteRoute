@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Inbox, Loader2, LogOut, MapPin, Phone, RefreshCw, ShieldCheck } from 'lucide-react'
+import { ArrowUpRight, Inbox, Loader2, LogOut, MapPin, Phone, RefreshCw, ShieldCheck } from 'lucide-react'
 import { api } from '../lib/api'
 import { formatDate } from '../lib/utils'
 import { Button } from '../components/ui/Button'
@@ -47,7 +48,14 @@ export function Admin() {
           </p>
         </div>
         {token ? (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/admin/b2b"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-cream-200/15 px-3 text-xs font-semibold text-cream-100 transition hover:border-saffron-400/40"
+            >
+              B2B-панель
+              <ArrowUpRight size={14} />
+            </Link>
             <Button variant="secondary" size="sm" onClick={() => leadsQuery.refetch()}>
               <RefreshCw size={15} />
               Обновить
@@ -101,19 +109,21 @@ export function Admin() {
           {leadsQuery.data.map((lead) => (
             <article key={lead.id} className="surface p-5 sm:p-6">
               <div className="flex items-start justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-saffron-400">
                     Комната {lead.room_code}
                   </p>
-                  <h2 className="mt-1 font-display text-2xl font-bold text-cream-50">{lead.name}</h2>
+                  <h2 className="mt-1 break-words font-display text-2xl font-bold text-cream-50">
+                    {lead.name}
+                  </h2>
                 </div>
                 <span className="rounded-full bg-basil-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-basil-400">
                   {lead.status}
                 </span>
               </div>
               <div className="mt-4 space-y-2 text-sm text-cream-200/70">
-                <p className="flex items-center gap-2">
-                  <Phone size={14} className="text-saffron-400" />
+                <p className="flex items-center gap-2 break-all">
+                  <Phone size={14} className="shrink-0 text-saffron-400" />
                   {lead.phone}
                 </p>
                 <p className="text-xs text-cream-300/40">{formatDate(lead.created_at)}</p>
@@ -130,10 +140,12 @@ export function Admin() {
                       <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-saffron-400/15 text-[9px] font-bold text-saffron-300">
                         {index + 1}
                       </span>
-                      <span>
-                        <span className="font-medium text-cream-200/80">{stop.name}</span>
-                        <span className="mt-0.5 flex items-center gap-1">
-                          <MapPin size={10} />
+                      <span className="min-w-0">
+                        <span className="break-words font-medium text-cream-200/80">
+                          {stop.name}
+                        </span>
+                        <span className="mt-0.5 flex items-center gap-1 break-words">
+                          <MapPin size={10} className="shrink-0" />
                           {stop.address}
                         </span>
                       </span>

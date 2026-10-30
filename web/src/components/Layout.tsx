@@ -1,6 +1,16 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
-import { MapPinned, ShieldCheck, Wand2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { MapPinned, Menu, ShieldCheck, Store, UtensilsCrossed, Wand2, X } from 'lucide-react'
 import { cn } from '../lib/utils'
+
+const navItems = [
+  { to: '/', label: 'Главная', icon: MapPinned, end: true },
+  { to: '/places', label: 'Рестораны', icon: UtensilsCrossed },
+  { to: '/for-restaurants', label: 'Ресторанам', icon: Store },
+  { to: '/fun', label: 'Фишки', icon: Wand2 },
+  { to: '/restaurant', label: 'Кабинет', icon: MapPinned },
+  { to: '/admin', label: 'Админ', icon: ShieldCheck },
+]
 
 function navClass({ isActive }: { isActive: boolean }) {
   return cn(
@@ -9,7 +19,40 @@ function navClass({ isActive }: { isActive: boolean }) {
   )
 }
 
+function drawerClass({ isActive }: { isActive: boolean }) {
+  return cn(
+    'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition',
+    isActive
+      ? 'bg-cream-50/[0.08] text-cream-50'
+      : 'text-cream-300/65 hover:bg-cream-50/[0.04] hover:text-cream-50',
+  )
+}
+
 export function Layout() {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const location = useLocation()
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!menuOpen) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [menuOpen])
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-30 border-b border-cream-200/[0.07] bg-ink-950/75 backdrop-blur-xl">
@@ -27,25 +70,76 @@ export function Layout() {
               </span>
             </span>
           </Link>
-          <nav className="flex items-center gap-1">
-            <NavLink to="/" end className={navClass}>
-              Главная
-            </NavLink>
-            <NavLink to="/fun" className={navClass} aria-label="Гастро-фишки">
-              <span className="flex items-center gap-1.5">
-                <Wand2 size={15} />
-                <span className="hidden sm:inline">Фишки</span>
-              </span>
-            </NavLink>
-            <NavLink to="/admin" className={navClass}>
-              <span className="flex items-center gap-1.5">
-                <ShieldCheck size={15} />
-                <span className="hidden sm:inline">Заявки</span>
-              </span>
-            </NavLink>
+
+          <nav className="hidden items-center gap-1 lg:flex">
+            {navItems.map(({ to, label, icon: Icon, end }) => (
+              <NavLink key={to} to={to} end={end} className={navClass}>
+                <span className="flex items-center gap-1.5">
+                  <Icon size={15} />
+                  <span>{label}</span>
+                </span>
+              </NavLink>
+            ))}
           </nav>
+
+          <button
+            type="button"
+            aria-label="Открыть меню"
+            aria-expanded={menuOpen}
+            aria-controls="mobile-nav"
+            onClick={() => setMenuOpen(true)}
+            className="grid h-10 w-10 place-items-center rounded-xl border border-cream-200/10 text-cream-100 transition hover:bg-cream-50/[0.06] lg:hidden"
+          >
+            <Menu size={20} />
+          </button>
         </div>
       </header>
+
+      {menuOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            type="button"
+            aria-label="Закрыть меню"
+            onClick={() => setMenuOpen(false)}
+            className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm"
+          />
+          <aside
+            id="mobile-nav"
+            className="absolute right-0 top-0 flex h-full w-[min(20rem,calc(100vw-3rem))] flex-col overflow-y-auto border-l border-cream-200/10 bg-ink-950 p-5 shadow-2xl"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-display text-lg font-bold text-cream-50">Меню</span>
+              <button
+                type="button"
+                aria-label="Закрыть меню"
+                onClick={() => setMenuOpen(false)}
+                className="grid h-10 w-10 place-items-center rounded-xl border border-cream-200/10 text-cream-100 transition hover:bg-cream-50/[0.06]"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <nav className="mt-8 flex flex-col gap-2">
+              {navItems.map(({ to, label, icon: Icon, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  onClick={() => setMenuOpen(false)}
+                  className={drawerClass}
+                >
+                  <Icon size={18} />
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+
+            <p className="mt-auto pt-8 text-xs leading-relaxed text-cream-300/40">
+              TasteRoute MVP · Тольятти · 20 ресторанов
+            </p>
+          </aside>
+        </div>
+      ) : null}
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-8 sm:px-6 sm:pt-12">
         <Outlet />

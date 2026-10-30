@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle2, Heart, Loader2, Route, WifiOff } from 'lucide-react'
+import { ArrowLeft, CalendarCheck, CheckCircle2, Heart, Loader2, Route, WifiOff } from 'lucide-react'
 import { api } from '../lib/api'
 import { getSession } from '../lib/session'
 import { useRoomSocket } from '../lib/useRoomSocket'
@@ -35,6 +35,7 @@ export function Swipes() {
   const current = catalog[index]
   const matchDish = activeMatch ? catalog.find((dish) => dish.dish_id === activeMatch.dish_id) : null
   const participants = socket.participants || roomQuery.data?.participants_count || 1
+  const restaurantMode = roomQuery.data?.mode === 'restaurant'
 
   useEffect(() => {
     if (socket.lastMatch) setActiveMatch(socket.lastMatch)
@@ -119,11 +120,11 @@ export function Swipes() {
           В комнату
         </Link>
         <Link
-          to={`/room/${roomCode}/route`}
+          to={`/room/${roomCode}/${restaurantMode ? 'booking' : 'route'}`}
           className="inline-flex items-center gap-2 text-sm font-semibold text-saffron-300 transition hover:text-saffron-400"
         >
-          <Route size={16} />
-          Маршрут
+          {restaurantMode ? <CalendarCheck size={16} /> : <Route size={16} />}
+          {restaurantMode ? 'Бронь' : 'Маршрут'}
         </Link>
       </div>
 
@@ -151,7 +152,7 @@ export function Swipes() {
         />
       </div>
 
-      <div className="rounded-3xl px-1 py-2">
+      <div className="overflow-x-clip rounded-3xl px-1 py-2">
         {current ? (
           <SwipeCard key={current.dish_id} dish={current} onSwipe={swipe} disabled={!socket.connected} />
         ) : (
@@ -161,15 +162,18 @@ export function Swipes() {
             </div>
             <h1 className="mt-5 font-display text-3xl font-bold text-cream-50">Колода пройдена</h1>
             <p className="mt-2 text-sm leading-relaxed text-cream-300/60">
-              Вы посмотрели все блюда. Если совпадений уже достаточно, собирайте маршрут.
+              Вы посмотрели все блюда.{' '}
+              {restaurantMode
+                ? 'Теперь можно оставить бронь с общими блюдами.'
+                : 'Если совпадений уже достаточно, собирайте маршрут.'}
             </p>
             <div className="mt-6 flex flex-col gap-3">
               <Link
-                to={`/room/${roomCode}/route`}
+                to={`/room/${roomCode}/${restaurantMode ? 'booking' : 'route'}`}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-saffron-400 px-6 text-sm font-bold text-ink-950 transition hover:bg-saffron-300"
               >
-                <Route size={17} />
-                Собрать маршрут
+                {restaurantMode ? <CalendarCheck size={17} /> : <Route size={17} />}
+                {restaurantMode ? 'Оставить бронь' : 'Собрать маршрут'}
               </Link>
               <Button variant="secondary" onClick={restart}>
                 Пройти заново

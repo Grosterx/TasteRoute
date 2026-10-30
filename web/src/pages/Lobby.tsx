@@ -1,6 +1,6 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, Link2, MapPinned, Route, Users } from 'lucide-react'
+import { ArrowRight, CalendarCheck, Link2, MapPinned, Route, Users } from 'lucide-react'
 import { api, shareURL } from '../lib/api'
 import { getSession } from '../lib/session'
 import { useRoomSocket } from '../lib/useRoomSocket'
@@ -19,6 +19,9 @@ export function Lobby() {
   })
   const socket = useRoomSocket(roomCode, session?.token)
   const participants = socket.participants || roomQuery.data?.participants_count || 1
+  const room = roomQuery.data
+  const restaurantMode = room?.mode === 'restaurant'
+  const shareLink = shareURL(roomCode)
 
   if (!session || session.roomCode !== roomCode) {
     return <Navigate to={`/r/${roomCode}`} replace />
@@ -27,10 +30,14 @@ export function Lobby() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <p className="eyebrow">Комната готова</p>
+        <p className="eyebrow">
+          {restaurantMode ? `Комната · ${room?.restaurant_name ?? 'ресторан'}` : 'Комната готова'}
+        </p>
         <h1 className="mt-3 font-display text-4xl font-bold leading-tight text-cream-50 sm:text-5xl">
           Привет, {session.name}.
-          <span className="block text-saffron-300">Позовите своих.</span>
+          <span className="block text-saffron-300">
+            {restaurantMode ? 'Выберите блюда вместе.' : 'Позовите своих.'}
+          </span>
         </h1>
       </div>
 
@@ -45,14 +52,18 @@ export function Lobby() {
           <p className="mt-2 text-sm leading-relaxed text-cream-300/60">
             Отправьте ссылку в чат. Друзья откроют её, введут имя и сразу попадут в комнату.
           </p>
-          <div className="mt-4 flex items-center gap-2 rounded-2xl border border-cream-200/10 bg-ink-850 p-2 pl-4">
-            <span className="min-w-0 flex-1 truncate text-xs text-cream-200/55">
-              {shareURL(roomCode)}
+          <div className="mt-4 flex min-w-0 flex-col gap-2 overflow-hidden rounded-2xl border border-cream-200/10 bg-ink-850 p-2 pl-4 sm:flex-row sm:items-center">
+            <span
+              className="min-w-0 w-full break-all text-xs leading-relaxed text-cream-200/55 sm:w-auto sm:flex-1 sm:truncate"
+              title={shareLink}
+            >
+              {shareLink}
             </span>
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => navigator.clipboard?.writeText(shareURL(roomCode))}
+              className="w-full shrink-0 sm:w-auto"
+              onClick={() => navigator.clipboard?.writeText(shareLink)}
             >
               Копировать
             </Button>
@@ -66,13 +77,23 @@ export function Lobby() {
               Начать свайпы
               <ArrowRight size={17} />
             </Link>
-            <Link
-              to={`/room/${roomCode}/route`}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-cream-200/15 bg-cream-50/[0.04] px-6 text-sm font-semibold text-cream-100 transition hover:border-saffron-400/40"
-            >
-              <Route size={17} />
-              Маршрут
-            </Link>
+            {restaurantMode ? (
+              <Link
+                to={`/room/${roomCode}/booking`}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-cream-200/15 bg-cream-50/[0.04] px-6 text-sm font-semibold text-cream-100 transition hover:border-saffron-400/40"
+              >
+                <CalendarCheck size={17} />
+                Бронь и выбор
+              </Link>
+            ) : (
+              <Link
+                to={`/room/${roomCode}/route`}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-cream-200/15 bg-cream-50/[0.04] px-6 text-sm font-semibold text-cream-100 transition hover:border-saffron-400/40"
+              >
+                <Route size={17} />
+                Маршрут
+              </Link>
+            )}
           </div>
         </div>
 
@@ -98,7 +119,7 @@ export function Lobby() {
           </div>
           <p className="mt-4 flex items-center gap-2 text-xs text-cream-300/40">
             <MapPinned size={14} className="text-saffron-400" />
-            {roomQuery.data?.city ?? 'Тольятти'}
+            {restaurantMode ? room?.restaurant_name : (room?.city ?? 'Тольятти')}
           </p>
         </div>
       </div>

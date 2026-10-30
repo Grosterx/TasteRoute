@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Heart, MapPinned, Route, Sparkles, Users } from 'lucide-react'
+import { ArrowRight, Heart, MapPinned, Route, Sparkles, Store, Users } from 'lucide-react'
 import { funFeatures } from '../lib/fun'
 import { FunFeatureCard } from '../components/FunFeatureCard'
 import { Button } from '../components/ui/Button'
@@ -29,29 +29,34 @@ export function Home() {
             <span className="block text-saffron-300">который устроит всех</span>
           </h1>
           <p className="mt-6 max-w-xl text-base leading-relaxed text-cream-200/65 sm:text-lg">
-            Друзья свайпают блюда в одной комнате. Когда вкусы совпадают, TasteRoute собирает
-            маршрут из двух-трёх ресторанов — и вы идёте туда, где действительно хотите есть.
+            Выберите ресторан по QR или ссылке, соберите компанию и свайпайте меню. Когда вкусы
+            совпадут — оставьте бронь. А для гастротура по городу можно собрать маршрут из
+            нескольких мест.
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button size="lg" onClick={() => navigate('/create')}>
-              Создать комнату
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button size="lg" onClick={() => navigate('/places')}>
+              Выбрать ресторан
               <ArrowRight size={18} />
             </Button>
-            <form onSubmit={join} className="flex gap-2">
-              <Input
-                value={code}
-                onChange={(event) => setCode(event.target.value.toUpperCase())}
-                placeholder="Код комнаты"
-                maxLength={6}
-                aria-label="Код комнаты"
-                className="w-40 text-center font-display text-lg tracking-[0.18em] uppercase"
-              />
-              <Button type="submit" size="lg" variant="secondary" disabled={code.trim().length < 4}>
-                Войти
-              </Button>
-            </form>
+            <Button size="lg" variant="secondary" onClick={() => navigate('/create')}>
+              Городская комната
+            </Button>
           </div>
+
+          <form onSubmit={join} className="mt-3 flex gap-2">
+            <Input
+              value={code}
+              onChange={(event) => setCode(event.target.value.toUpperCase())}
+              placeholder="Код комнаты"
+              maxLength={6}
+              aria-label="Код комнаты"
+              className="w-40 text-center font-display text-lg tracking-[0.18em] uppercase"
+            />
+            <Button type="submit" size="lg" variant="secondary" disabled={code.trim().length < 4}>
+              Войти
+            </Button>
+          </form>
 
           <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-xs text-cream-300/45">
             <span className="flex items-center gap-2">
@@ -67,7 +72,7 @@ export function Home() {
         </div>
 
         <div className="relative mx-auto w-full max-w-md lg:mx-0 lg:ml-auto">
-          <div className="absolute -inset-6 rounded-[3rem] bg-saffron-400/10 blur-3xl" />
+          <div className="pointer-events-none absolute inset-0 rounded-[3rem] bg-saffron-400/10 blur-3xl" />
           <div className="surface relative overflow-hidden rounded-[2rem] p-5">
             <div className="flex items-center justify-between">
               <span className="eyebrow">Комната ABC234</span>
@@ -96,6 +101,45 @@ export function Home() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <Link
+          to="/places"
+          className="surface group flex flex-col justify-between gap-6 p-6 transition hover:border-saffron-400/30 sm:p-7"
+        >
+          <div>
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-saffron-400/10 text-saffron-300">
+              <MapPinned size={21} />
+            </div>
+            <h2 className="mt-5 font-display text-2xl font-bold text-cream-50">Рестораны города</h2>
+            <p className="mt-2 text-sm leading-relaxed text-cream-300/60">
+              Выберите место, откройте меню и начните комнату. QR на столе ведёт сюда же.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-saffron-300 group-hover:text-saffron-400">
+            Смотреть рестораны
+            <ArrowRight size={15} />
+          </span>
+        </Link>
+        <Link
+          to="/for-restaurants"
+          className="surface group flex flex-col justify-between gap-6 p-6 transition hover:border-basil-400/30 sm:p-7"
+        >
+          <div>
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-basil-400/10 text-basil-400">
+              <Store size={21} />
+            </div>
+            <h2 className="mt-5 font-display text-2xl font-bold text-cream-50">Ресторанам</h2>
+            <p className="mt-2 text-sm leading-relaxed text-cream-300/60">
+              QR-меню, групповой выбор блюд и брони в одном кабинете. Бесплатный пилот.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-basil-400 group-hover:text-basil-300">
+            Подключить ресторан
+            <ArrowRight size={15} />
+          </span>
+        </Link>
       </section>
 
       <section>

@@ -158,20 +158,28 @@ git push -u origin main
 
 ## 8. Доступ для друзей через интернет
 
-### Cloudflare Tunnel (быстро и бесплатно)
+### Serveo (бесплатно)
 
-1. Скачай [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/)
-2. Убедись, что стек запущен: `docker compose ps`
-3. Запусти туннель:
+1. Убедись, что стек запущен: `docker compose ps`
+2. Запусти стенд и туннель:
 
 ```powershell
-.\cloudflared.exe tunnel --url http://localhost:5173 --no-autoupdate
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\public-demo.ps1 -Action start
 ```
 
-4. Скопируй выданный URL вида `https://xxx.trycloudflare.com` и скинь друзьям
-5. Если меняешь URL — добавь его в `CORS_ORIGINS` в `.env` и перезапусти API: `docker compose up -d --force-recreate api`
+3. Скрипт сам поднимет Serveo, обновит `PUBLIC_APP_URL`/`CORS_ORIGINS` и пересоздаст API.
+4. Проверить или остановить:
 
-**Важно:** ПК должен быть включён, Docker и туннель должны работать. Quick tunnel не требует регистрации.
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\public-demo.ps1 -Action status
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\public-demo.ps1 -Action stop
+```
+
+Текущая ссылка: `https://8e4fa45ca01c2779-80-234-77-125.serveousercontent.com`.
+
+Для стабильного `https://tasteroute-pvgus.serveo.net` добавь публичный ключ `%USERPROFILE%\.ssh\tasteroute_serveo.pub` в `https://console.serveo.net/ssh/keys`.
+
+**Важно:** ПК должен быть включён, Docker и туннель должны работать. Serveo free может показывать предупреждающий экран; API обходит его заголовком `serveo-skip-browser-warning`.
 
 ## 9. Полезные команды
 

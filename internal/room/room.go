@@ -5,7 +5,9 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -13,6 +15,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/Grosterx/tasteroute/internal/id"
+	"github.com/Grosterx/tasteroute/internal/restaurant"
 )
 
 const (
@@ -35,8 +38,19 @@ type Room struct {
 	Code              string  `json:"code"`
 	City              string  `json:"city"`
 	ParticipantsCount int     `json:"participants_count"`
+	Mode              string  `json:"mode"`
+	Source            string  `json:"source"`
+	RestaurantID      string  `json:"restaurant_id,omitempty"`
+	RestaurantName    string  `json:"restaurant_name,omitempty"`
+	RestaurantSlug    string  `json:"restaurant_slug,omitempty"`
 	StartLat          float64 `json:"-"`
 	StartLon          float64 `json:"-"`
+}
+
+type CreateInput struct {
+	City           string
+	RestaurantSlug string
+	Source         string
 }
 
 type Participant struct {
@@ -53,10 +67,35 @@ type SwipeResult struct {
 	MatchCreated bool   `json:"match_created"`
 }
 
-func Create(ctx context.Context, db *pgxpool.Pool, city string) (Room, error) {
-	city = strings.TrimSpace(city)
-	if city == "" {
-		city = defaultCity
+func Create(ctx context.Context, db *pgxpool.Pool, input CreateInput) (Room, error) {
+	input.City = strings.TrimSpace(input.City)
+	input.RestaurantSlug = strings.TrimSpace(input.RestaurantSlug)
+	input.Source = strings.TrimSpace(input.Source)
+	if input.City == "" {
+		input.City = defaultCity
+	}
+	if input.Source == "" {
+		input.Source = "direct"
+	}
+	if len([]rune(input.Source)) > 40 {
+		input.Source = string([]rune(input.Source)[:40])
+	}
+
+	mode := "city"
+	var restaurantID, restaurantName, restaurantSlug string
+	lat, lon := startLat, startLon
+	if input.RestaurantSlug != "" {
+		found, err := restaurant.GetBySlug(ctx, db, input.RestaurantSlug)
+		if err != nil {
+			return Room{}, err
+		}
+		mode = "restaurant"
+		restaurantID = found.ID
+		restaurantName = found.Name
+		restaurantSlug = found.Slug
+		input.City = found.City
+		lat = found.Lat
+		lon = found.Lon
 	}
 
 	for attempt := 0; attempt < 8; attempt++ {
@@ -65,13 +104,28 @@ func Create(ctx context.Context, db *pgxpool.Pool, city string) (Room, error) {
 			return Room{}, err
 		}
 		roomID := id.New()
+		var restaurantRef any
+		if restaurantID != "" {
+			restaurantRef = restaurantID
+		}
 		_, err = db.Exec(ctx, `
-			INSERT INTO rooms (id, code, city, start_lat, start_lon)
-			VALUES ($1, $2, $3, $4, $5)`,
-			roomID, code, city, startLat, startLon,
+			INSERT INTO rooms (id, code, city, start_lat, start_lon, restaurant_id, mode, source)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+			roomID, code, input.City, lat, lon, restaurantRef, mode, input.Source,
 		)
 		if err == nil {
-			return Room{ID: roomID, Code: code, City: city, StartLat: startLat, StartLon: startLon}, nil
+			return Room{
+				ID:             roomID,
+				Code:           code,
+				City:           input.City,
+				Mode:           mode,
+				Source:         input.Source,
+				RestaurantID:   restaurantID,
+				RestaurantName: restaurantName,
+				RestaurantSlug: restaurantSlug,
+				StartLat:       lat,
+				StartLon:       lon,
+			}, nil
 		}
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -87,12 +141,18 @@ func Get(ctx context.Context, db *pgxpool.Pool, code string) (Room, error) {
 	var r Room
 	var count int64
 	err := db.QueryRow(ctx, `
-		SELECT r.id, r.code, r.city, r.start_lat, r.start_lon, COUNT(p.id)
+		SELECT r.id, r.code, r.city, r.start_lat, r.start_lon, r.mode, r.source,
+		       COALESCE(r.restaurant_id::text, ''), COALESCE(rt.name, ''), COALESCE(rt.slug, ''),
+		       COUNT(p.id)
 		FROM rooms r
+		LEFT JOIN restaurants rt ON rt.id = r.restaurant_id
 		LEFT JOIN participants p ON p.room_id = r.id
 		WHERE r.code = $1
-		GROUP BY r.id`, code,
-	).Scan(&r.ID, &r.Code, &r.City, &r.StartLat, &r.StartLon, &count)
+		GROUP BY r.id, rt.name, rt.slug`, code,
+	).Scan(
+		&r.ID, &r.Code, &r.City, &r.StartLat, &r.StartLon, &r.Mode, &r.Source,
+		&r.RestaurantID, &r.RestaurantName, &r.RestaurantSlug, &count,
+	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Room{}, ErrNotFound
 	}
@@ -161,8 +221,10 @@ func Swipe(ctx context.Context, db *pgxpool.Pool, rdb *redis.Client, roomID, roo
 			SELECT 1
 			FROM dishes d
 			JOIN restaurants r ON r.id = d.restaurant_id
+			JOIN rooms rm ON rm.id = $2
 			WHERE d.id = $1 AND d.active AND r.active
-		)`, dishID).Scan(&dishExists)
+			  AND (rm.restaurant_id IS NULL OR d.restaurant_id = rm.restaurant_id)
+		)`, dishID, roomID).Scan(&dishExists)
 	if err != nil {
 		return SwipeResult{}, fmt.Errorf("check dish: %w", err)
 	}
@@ -170,6 +232,7 @@ func Swipe(ctx context.Context, db *pgxpool.Pool, rdb *redis.Client, roomID, roo
 		return SwipeResult{}, ErrDishNotFound
 	}
 
+	inserted := true
 	var swipeID string
 	err = db.QueryRow(ctx, `
 		INSERT INTO swipes (id, room_id, participant_id, dish_id, liked)
@@ -178,22 +241,40 @@ func Swipe(ctx context.Context, db *pgxpool.Pool, rdb *redis.Client, roomID, roo
 		RETURNING id`, id.New(), roomID, participantID, dishID, liked,
 	).Scan(&swipeID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return SwipeResult{Recorded: false, DishID: dishID}, nil
-	}
-	if err != nil {
+		inserted = false
+		var existingLiked bool
+		if err := db.QueryRow(ctx, `
+			SELECT liked FROM swipes
+			WHERE participant_id = $1 AND dish_id = $2`, participantID, dishID,
+		).Scan(&existingLiked); err != nil {
+			return SwipeResult{}, fmt.Errorf("load existing swipe: %w", err)
+		}
+		if !existingLiked {
+			return SwipeResult{Recorded: false, DishID: dishID}, nil
+		}
+	} else if err != nil {
 		return SwipeResult{}, fmt.Errorf("insert swipe: %w", err)
 	}
 
-	result := SwipeResult{Recorded: true, DishID: dishID}
+	result := SwipeResult{Recorded: inserted, DishID: dishID}
 	if !liked {
 		return result, nil
 	}
 
-	likes, err := rdb.Incr(ctx, likesKey(roomCode, dishID)).Result()
-	if err != nil {
-		return result, fmt.Errorf("increment likes: %w", err)
+	var likes int64
+	if err := db.QueryRow(ctx, `
+		SELECT count(*) FROM swipes
+		WHERE room_id = $1 AND dish_id = $2 AND liked`, roomID, dishID,
+	).Scan(&likes); err != nil {
+		return result, fmt.Errorf("count likes: %w", err)
 	}
 	result.Likes = likes
+
+	if rdb != nil {
+		if err := rdb.Set(ctx, likesKey(roomCode, dishID), likes, 24*time.Hour).Err(); err != nil {
+			slog.Warn("cache likes", "error", err, "room", roomCode, "dish", dishID)
+		}
+	}
 
 	var participants int
 	if err := db.QueryRow(ctx, `SELECT COUNT(*) FROM participants WHERE room_id = $1`, roomID).Scan(&participants); err != nil {

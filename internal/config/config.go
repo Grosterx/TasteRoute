@@ -9,26 +9,30 @@ import (
 const defaultPathPrefix = "/tasteroute/api"
 
 type Config struct {
-	AppEnv         string
-	Port           string
-	AppPathPrefix  string
-	DatabaseURL    string
-	RedisURL       string
-	GuestJWTSecret string
-	AdminToken     string
-	CORSOrigins    []string
+	AppEnv              string
+	Port                string
+	AppPathPrefix       string
+	DatabaseURL         string
+	RedisURL            string
+	GuestJWTSecret      string
+	RestaurantJWTSecret string
+	AdminToken          string
+	CORSOrigins         []string
+	PublicAppURL        string
 }
 
 func Load() (Config, error) {
 	cfg := Config{
-		AppEnv:         envOr("APP_ENV", "development"),
-		Port:           envOr("PORT", "8080"),
-		AppPathPrefix:  normalizePrefix(envOr("APP_PATH_PREFIX", defaultPathPrefix)),
-		DatabaseURL:    strings.TrimSpace(os.Getenv("DATABASE_URL")),
-		RedisURL:       envOr("REDIS_URL", "redis://localhost:6379/0"),
-		GuestJWTSecret: strings.TrimSpace(os.Getenv("GUEST_JWT_SECRET")),
-		AdminToken:     strings.TrimSpace(os.Getenv("ADMIN_TOKEN")),
-		CORSOrigins:    parseOrigins(envOr("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")),
+		AppEnv:              envOr("APP_ENV", "development"),
+		Port:                envOr("PORT", "8080"),
+		AppPathPrefix:       normalizePrefix(envOr("APP_PATH_PREFIX", defaultPathPrefix)),
+		DatabaseURL:         strings.TrimSpace(os.Getenv("DATABASE_URL")),
+		RedisURL:            envOr("REDIS_URL", "redis://localhost:6379/0"),
+		GuestJWTSecret:      strings.TrimSpace(os.Getenv("GUEST_JWT_SECRET")),
+		RestaurantJWTSecret: strings.TrimSpace(os.Getenv("RESTAURANT_JWT_SECRET")),
+		AdminToken:          strings.TrimSpace(os.Getenv("ADMIN_TOKEN")),
+		CORSOrigins:         parseOrigins(envOr("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")),
+		PublicAppURL:        strings.TrimRight(strings.TrimSpace(os.Getenv("PUBLIC_APP_URL")), "/"),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -39,6 +43,9 @@ func Load() (Config, error) {
 	}
 	if len(cfg.GuestJWTSecret) < 16 {
 		return Config{}, errors.New("GUEST_JWT_SECRET is required and must be at least 16 characters")
+	}
+	if len(cfg.RestaurantJWTSecret) < 16 {
+		return Config{}, errors.New("RESTAURANT_JWT_SECRET is required and must be at least 16 characters")
 	}
 	if len(cfg.AdminToken) < 8 {
 		return Config{}, errors.New("ADMIN_TOKEN is required and must be at least 8 characters")

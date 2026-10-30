@@ -21,9 +21,13 @@ services:
         sync: false
       - key: GUEST_JWT_SECRET
         generateValue: true
+      - key: RESTAURANT_JWT_SECRET
+        generateValue: true
       - key: ADMIN_TOKEN
         generateValue: true
       - key: CORS_ORIGINS
+        value: https://tasteroute-web-grosterx.onrender.com
+      - key: PUBLIC_APP_URL
         value: https://tasteroute-web-grosterx.onrender.com
 
   - type: web

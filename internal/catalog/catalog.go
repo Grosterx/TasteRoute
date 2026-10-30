@@ -26,8 +26,10 @@ func List(ctx context.Context, db *pgxpool.Pool, roomID string) ([]Dish, error) 
 		       r.id, r.name, r.address, r.cuisine
 		FROM dishes d
 		JOIN restaurants r ON r.id = d.restaurant_id
+		JOIN rooms rm ON rm.id = $1
 		WHERE d.active AND r.active
-		ORDER BY r.name, d.name`)
+		  AND (rm.restaurant_id IS NULL OR d.restaurant_id = rm.restaurant_id)
+		ORDER BY r.name, d.category, d.sort_order, d.name`, roomID)
 	if err != nil {
 		return nil, fmt.Errorf("list catalog: %w", err)
 	}
@@ -50,6 +52,5 @@ func List(ctx context.Context, db *pgxpool.Pool, roomID string) ([]Dish, error) 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate catalog: %w", err)
 	}
-	_ = roomID // catalog is global for the single-city MVP
 	return dishes, nil
 }

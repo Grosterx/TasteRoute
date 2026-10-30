@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle2, Loader2, MapPin, Route, Send, Utensils } from 'lucide-react'
+import { ArrowLeft, CalendarCheck, CheckCircle2, Loader2, MapPin, Route, Send, Utensils } from 'lucide-react'
 import { ApiError, api } from '../lib/api'
 import { getSession } from '../lib/session'
 import { Button } from '../components/ui/Button'
@@ -44,13 +44,38 @@ export function RoutePage() {
     }
   }
 
-  const notEnough = routeQuery.error instanceof ApiError && routeQuery.error.status === 409
+  const conflict = routeQuery.error instanceof ApiError && routeQuery.error.status === 409
+  const restaurantRoom =
+    routeQuery.error instanceof ApiError && routeQuery.error.message.includes('бронирование')
+  const notEnough = conflict && !restaurantRoom
 
   if (routeQuery.isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center gap-3 text-sm text-cream-300/60">
         <Loader2 size={18} className="animate-spin text-saffron-400" />
         Собираем маршрут…
+      </div>
+    )
+  }
+
+  if (restaurantRoom) {
+    return (
+      <div className="surface mx-auto max-w-xl p-7 text-center sm:p-9">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-saffron-400/10 text-saffron-300">
+          <CalendarCheck size={28} />
+        </div>
+        <h1 className="mt-5 font-display text-3xl font-bold text-cream-50">Это комната ресторана</h1>
+        <p className="mt-3 text-sm leading-relaxed text-cream-300/60">
+          Здесь не нужен маршрут по городу: гости выбрали меню одного ресторана. Оставьте бронь с
+          общими блюдами.
+        </p>
+        <Link
+          to={`/room/${roomCode}/booking`}
+          className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-saffron-400 px-6 text-sm font-bold text-ink-950 transition hover:bg-saffron-300"
+        >
+          <CalendarCheck size={17} />
+          К брони
+        </Link>
       </div>
     )
   }

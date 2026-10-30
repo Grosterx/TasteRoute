@@ -33,6 +33,10 @@ func (a *API) route(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "не удалось загрузить комнату")
 		return
 	}
+	if found.Mode == "restaurant" {
+		writeError(w, http.StatusConflict, "для комнаты ресторана используйте бронирование")
+		return
+	}
 
 	built, err := routepkg.BuildForRoom(r.Context(), a.db, found.ID)
 	if errors.Is(err, routepkg.ErrNotEnoughMatches) {

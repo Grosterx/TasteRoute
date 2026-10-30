@@ -10,18 +10,29 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/Grosterx/tasteroute/internal/auth"
+	restaurantpkg "github.com/Grosterx/tasteroute/internal/restaurant"
 	"github.com/Grosterx/tasteroute/internal/room"
 )
 
 func (a *API) createRoom(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		City string `json:"city"`
+		City           string `json:"city"`
+		RestaurantSlug string `json:"restaurant_slug"`
+		Source         string `json:"source"`
 	}
 	if err := decodeJSON(r, &body); err != nil {
 		writeError(w, http.StatusBadRequest, "некорректный запрос")
 		return
 	}
-	created, err := room.Create(r.Context(), a.db, body.City)
+	created, err := room.Create(r.Context(), a.db, room.CreateInput{
+		City:           body.City,
+		RestaurantSlug: body.RestaurantSlug,
+		Source:         body.Source,
+	})
+	if errors.Is(err, restaurantpkg.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "ресторан не найден")
+		return
+	}
 	if err != nil {
 		slog.Error("create room", "error", err)
 		writeError(w, http.StatusInternalServerError, "не удалось создать комнату")

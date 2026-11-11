@@ -187,6 +187,7 @@ go run ./cmd/seed
 - Секреты только в `/opt/tasteroute/.env` (`chmod 600`), в git не попадают.
 - Обновление: `cd /opt/tasteroute && git pull && docker compose up -d --build`. Миграции применяет сервис `migrate`.
 - Бэкапы: `/usr/local/bin/tasteroute-backup.sh` по cron в `03:30`, дампы в `/var/backups/tasteroute` за 7 дней; `scripts/pull-backup.ps1` копирует свежий дамп на ПК.
+- Надёжность: `restart: unless-stopped`, автозапуск Docker/Caddy, watchdog `/usr/local/bin/tasteroute-watchdog.sh` каждые 5 минут (лог `/var/log/tasteroute-watchdog.log`), `unattended-upgrades`.
 - SSH только по ключу. Провайдерский `00-freetato.conf` включает пароль, поэтому локальный drop-in `00-00-hardening.conf` должен читаться раньше: sshd берёт первое значение.
 - При неоплате VPS останавливается и через 14 дней удаляется вместе с бэкапами; актуальная база должна быть в дампе на ПК.
 

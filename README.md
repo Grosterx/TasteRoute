@@ -446,7 +446,15 @@ docker compose exec -T postgres pg_dump -U tasteroute tasteroute | gzip > /var/b
 gunzip -c db-2026-11-11.sql.gz | docker compose exec -T postgres psql -U tasteroute -d tasteroute
 ```
 
-### 8. SSH
+### 8. Надёжность
+
+- Все сервисы с `restart: unless-stopped`, Docker и Caddy в автозапуске — сервер переживает перезагрузку без ручных действий.
+- `/usr/local/bin/tasteroute-watchdog.sh` по cron каждые 5 минут: поднимает упавшие и нездоровые контейнеры, перезапускает Caddy, а после двух подряд неудачных проверок `healthz` перезапускает `api` и `web`. Лог: `/var/log/tasteroute-watchdog.log`.
+- `unattended-upgrades` включён — security-обновления Debian ставятся автоматически.
+- Логи Docker ограничены 10 МБ × 3 на контейнер, дампы хранятся 7 дней, образы чистятся по воскресеньям.
+- Стек однопостовой: 2 ГБ RAM и 1.9 ГБ swap. При всплеске нагрузки возможны замедления, горизонтального масштабирования нет.
+
+### 9. SSH
 
 Вход только по ключу: `PermitRootLogin prohibit-password`, `PasswordAuthentication no`. Провайдер кладёт `/etc/ssh/sshd_config.d/00-freetato.conf` с `yes`, а sshd берёт первое встреченное значение, поэтому локальный drop-in назван так, чтобы читаться раньше: `/etc/ssh/sshd_config.d/00-00-hardening.conf`.
 

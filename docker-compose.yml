@@ -1,7 +1,7 @@
 name: tasteroute
 
 x-backend-env: &backend-env
-  APP_ENV: development
+  APP_ENV: "${APP_ENV:-development}"
   APP_PATH_PREFIX: /tasteroute/api
   DATABASE_URL: postgres://tasteroute:tasteroute@postgres:5432/tasteroute?sslmode=disable
   REDIS_URL: redis://redis:6379/0

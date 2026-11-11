@@ -181,6 +181,7 @@ go run ./cmd/seed
 
 - Прод: VPS Freetato (Debian 13), код в `/opt/tasteroute`, стек в Docker Compose, TLS и прокси — Caddy, домен — `nip.io`.
 - Ссылка: `https://194-226-54-219.nip.io`. Админка `/admin`, B2B `/admin/b2b`, кабинет `/restaurant/login`.
+- `nip.io` резолвит и вариант с точками (`194.226.54.219.nip.io`); Caddy держит сертификаты на оба имени и редиректит точечный вариант на канон с дефисами.
 - Наружу открыты только `22`, `80`, `443`; `api` и `web` слушают `127.0.0.1`.
 - `APP_ENV=production` включает HSTS. `CORS_ORIGINS` и `PUBLIC_APP_URL` указывают на публичный origin.
 - Секреты только в `/opt/tasteroute/.env` (`chmod 600`), в git не попадают.

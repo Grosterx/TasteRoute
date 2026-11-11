@@ -379,7 +379,14 @@ docker compose --profile seed run --rm seed
 ```caddyfile
 194-226-54-219.nip.io {
 	encode zstd gzip
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	reverse_proxy 127.0.0.1:5173
+}
+
+# nip.io резолвит и вариант с точками на тот же IP: выдаём на него
+# отдельный сертификат и редиректим на канонический адрес с дефисами.
+194.226.54.219.nip.io {
+	redir https://194-226-54-219.nip.io{uri} permanent
 }
 ```
 
@@ -388,7 +395,9 @@ systemctl enable --now caddy
 systemctl reload caddy
 ```
 
-Caddy сам получает и продлевает сертификат Let's Encrypt. `web/nginx.conf` пробрасывает `X-Forwarded-For`, поэтому rate limit и дедупликация просмотров видят реальный IP гостя.
+Caddy сам получает и продлевает сертификат Let's Encrypt для обоих написаний домена. `web/nginx.conf` пробрасывает `X-Forwarded-For`, поэтому rate limit и дедупликация просмотров видят реальный IP гостя.
+
+`nip.io` одинаково резолвит `194-226-54-219.nip.io` (канон) и `194.226.54.219.nip.io` (с точками). Второе имя получает свой сертификат и 301-редирект на канон, поэтому ссылка не ломается, если кто-то напишет адрес через точки.
 
 ### 5. Проверка
 

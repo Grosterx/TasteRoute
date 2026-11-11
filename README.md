@@ -86,7 +86,7 @@ B2B-платформа для ресторанов: QR-меню, группов�
 - Go 1.23, chi, pgx, goose, JWT, bcrypt, gorilla/websocket, go-redis.
 - PostgreSQL и Redis.
 - React 18, Vite, TypeScript, Tailwind, React Query, framer-motion, qrcode.
-- Docker, Render Free, Supabase Free, Upstash Free, GitHub Actions.
+- Docker, VPS (Debian + Caddy + `nip.io`), GitHub Actions.
 - PWA-манифест и service worker.
 
 ## Быстрый старт в Docker
@@ -120,89 +120,24 @@ node scripts/smoke.mjs
 
 Smoke-тест проходит городскую комнату и B2B: публичная страница, создание ресторана и аккаунта, комната ресторана, мэтч, бронь, кабинет, аналитика, B2B-лид и админка. Дополнительно проверяются запрет перезаписи чужой брони (409) и инвалидация старого JWT после смены пароля. Временный ресторан после проверки скрывается (`active=false`).
 
-## Публичная демонстрация через Serveo
+## Локальная демонстрация (опционально)
 
-Для публичного URL используется Serveo. Наружу открывается только `web` на `5173`; API и WebSocket идут через nginx на том же публичном origin.
-
-Текущая ссылка: `https://8e4fa45ca01c2779-80-234-77-125.serveousercontent.com`.
-
-1. Сгенерировать SSH-ключ для Serveo и добавить его в консоль:
-
-```powershell
-ssh-keygen -t ed25519 -f "$env:USERPROFILE\.ssh\tasteroute_serveo" -N '""' -C tasteroute-demo
-Get-Content "$env:USERPROFILE\.ssh\tasteroute_serveo.pub"
-```
-
-Публичный ключ добавить на `https://console.serveo.net/ssh/keys`. Это бесплатно и нужно для красивого стабильного поддомена. Без регистрации Serveo выдаст длинный auto-URL.
-
-2. Указать провайдера и поддомен в `.env`:
-
-```text
-TUNNEL_PROVIDER=serveo
-SERVEO_SUBDOMAIN=tasteroute-pvgus
-SERVEO_SSH_PORT=443
-SERVEO_SSH_KEY=
-```
-
-`SERVEO_SSH_KEY` можно не заполнять: по умолчанию берётся `%USERPROFILE%\.ssh\tasteroute_serveo`.
-
-3. Поднять стек и загрузить демо-данные:
-
-```powershell
-docker compose up -d --build --pull=false
-docker compose --profile seed run --rm --build seed
-```
-
-4. Запустить стенд и туннель:
+Прод работает на VPS — см. «Деплой на VPS». Туннели Serveo/ngrok/cloudflared остались только как локальный fallback: они зависят от включённого ПК, Docker и интернета, а при обрыве туннеля публичная ссылка отдаёт 502.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\public-demo.ps1 -Action start
-```
-
-Скрипт сам запускает Docker Desktop, проверяет здоровье `api` и `web`, поднимает SSH-туннель Serveo на `443`, записывает URL в `.env`, обновляет `CORS_ORIGINS`/`PUBLIC_APP_URL` и пересоздаёт `api`.
-
-5. Проверить состояние и остановить:
-
-```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\public-demo.ps1 -Action status
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\public-demo.ps1 -Action stop
 ```
 
-6. Включить автозапуск при входе в Windows:
+Скрипт проверяет здоровье `api`/`web`, поднимает SSH-туннель, записывает URL в `.env` и обновляет `CORS_ORIGINS`/`PUBLIC_APP_URL`. Автозапуск при входе в Windows:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-autostart.ps1
-```
-
-Скрипт создаёт задачу `TasteRoute Demo` в Task Scheduler и отключает сон/гибернацию при питании от сети. Удалить задачу:
-
-```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-autostart.ps1 -Remove
 ```
 
-7. Проверить runtime-конфиг:
-
-```powershell
-Invoke-RestMethod https://8e4fa45ca01c2779-80-234-77-125.serveousercontent.com/tasteroute/api/public/config
-```
-
-Ожидаемый ответ:
-
-```json
-{"public_app_url":"https://8e4fa45ca01c2779-80-234-77-125.serveousercontent.com"}
-```
-
-Важно:
-
-- `PUBLIC_APP_URL` и `CORS_ORIGINS` обновляются скриптом при запуске туннеля.
-- Serveo free: 3 активных туннеля, HTTPS и поддомены бесплатно; может показывать предупреждающий экран. Pro за `$6/мес` убирает экран, для демо это не обязательно.
-- API-запросы и healthcheck идут с заголовком `serveo-skip-browser-warning: true`; если Serveo покажет предупреждение, API его не получит.
-- Красивый `https://tasteroute-pvgus.serveo.net` заработает после добавления SSH-ключа в консоль Serveo. До этого используется длинный auto-URL; он часто сохраняется между перезапусками, но зависит от IP.
-- Стенд доступен только пока включён ПК, запущен Docker и есть интернет.
-- Watchdog проверяет локальный стек и публичный URL. При падении `api`/`web`/`postgres`/`redis` перезапускает нужный контейнер; при устойчивых ошибках публичного URL перезапускает Serveo.
-- `node scripts/smoke.mjs` с `API_BASE=https://<serveo-host>/tasteroute/api` проходит публичный сценарий, включая WebSocket.
-- ngrok с текущего IP недоступен (`ERR_NGROK_9040`); провайдер оставлен как fallback для другой сети.
-- Не публикуйте наружу порты `8080`, `5432` и `6379`.
+Переменные `TUNNEL_PROVIDER`, `SERVEO_*` и `NGROK_DOMAIN` — в таблице окружения. Для прода они не нужны.
 
 ### Как подключить ресторан вручную
 
@@ -262,7 +197,7 @@ Vite проксирует `/tasteroute/api` на `http://localhost:8080`, поэ
 | Переменная | Обязательна | Назначение |
 | --- | --- | --- |
 | `DATABASE_URL` | да | PostgreSQL DSN |
-| `REDIS_URL` | да | Redis/Upstash DSN |
+| `REDIS_URL` | да | Redis DSN; в Docker — `redis://redis:6379/0` |
 | `GUEST_JWT_SECRET` | да | подпись гостевых JWT, минимум 16 символов |
 | `RESTAURANT_JWT_SECRET` | да | подпись JWT кабинета ресторана, минимум 16 символов |
 | `ADMIN_TOKEN` | да | доступ к `/admin/*`, минимум 8 символов |
@@ -271,11 +206,11 @@ Vite проксирует `/tasteroute/api` на `http://localhost:8080`, поэ
 | `APP_PATH_PREFIX` | нет | префикс API, по умолчанию `/tasteroute/api` |
 | `CORS_ORIGINS` | нет | origin веб-клиента через запятую |
 | `PUBLIC_APP_URL` | нет | публичный origin для ссылок-приглашений и QR; пусто — текущий origin браузера, без `/` на конце |
-| `TUNNEL_PROVIDER` | нет | `serveo`, `ngrok` или `cloudflare`, по умолчанию `serveo` |
-| `SERVEO_SUBDOMAIN` | нет | поддомен Serveo без `.serveo.net` |
-| `SERVEO_SSH_PORT` | нет | SSH-порт Serveo, по умолчанию `443` |
-| `SERVEO_SSH_KEY` | нет | путь к SSH-ключу Serveo; по умолчанию `%USERPROFILE%\.ssh\tasteroute_serveo` |
-| `NGROK_DOMAIN` | нет | статический домен ngrok без `https://` |
+| `TUNNEL_PROVIDER` | нет | legacy: `serveo`, `ngrok` или `cloudflare` для локального туннеля |
+| `SERVEO_SUBDOMAIN` | нет | legacy: поддомен Serveo без `.serveo.net` |
+| `SERVEO_SSH_PORT` | нет | legacy: SSH-порт Serveo, по умолчанию `443` |
+| `SERVEO_SSH_KEY` | нет | legacy: путь к SSH-ключу Serveo |
+| `NGROK_DOMAIN` | нет | legacy: статический домен ngrok без `https://` |
 | `SEEDS_DIR` | нет | каталог seed-файлов, по умолчанию `seeds` |
 | `VITE_API_BASE_URL` | нет | база API на frontend, по умолчанию `/tasteroute/api` |
 
@@ -378,79 +313,148 @@ node scripts/smoke.mjs
 Для удалённого API:
 
 ```powershell
-$env:API_BASE='https://tasteroute-api-grosterx.onrender.com/tasteroute/api'
+$env:API_BASE='https://194-226-54-219.nip.io/tasteroute/api'
 $env:ADMIN_TOKEN='...'
 node scripts/smoke.mjs
 ```
 
-Проверка публичной ссылки после туннеля:
+Проверка публичной ссылки:
 
 ```powershell
-Invoke-RestMethod https://<tunnel-host>/tasteroute/api/public/config
+Invoke-RestMethod https://194-226-54-219.nip.io/tasteroute/api/public/config
 ```
 
 Затем вручную: открыть публичный URL, создать комнату, скопировать ссылку и открыть её на втором устройстве.
 
-## Бесплатный деплой
+## Деплой на VPS
 
-### 1. GitHub
+Прод крутится на VPS Freetato (Debian 13, 2 ГБ RAM, 30 ГБ SSD): Docker Compose + Caddy + бесплатный домен `nip.io`. Render, Supabase и Upstash в продовом пути не используются.
 
-Создать публичный репозиторий `Grosterx/TasteRoute` и запушить `main`. CI проверит Go и frontend.
+Рабочая ссылка: `https://194-226-54-219.nip.io`.
 
-### 2. Supabase
+### 1. Подготовка сервера
 
-1. Создать бесплатный проект.
-2. Взять строку подключения Session pooler (IPv4) из Database settings.
-3. Использовать её как `DATABASE_URL` с `?sslmode=require`.
-4. Пароль из строки подключения не коммитить.
-
-### 3. Upstash
-
-1. Создать бесплатную Redis-базу.
-2. Скопировать `rediss://...` в `REDIS_URL`.
-3. Убедиться, что Render сможет подключиться по TLS.
-
-### 4. Render
-
-1. New → Blueprint → подключить репозиторий.
-2. Render прочитает `render.yaml` и создаст:
-   - `tasteroute-api-grosterx` — Docker web service;
-   - `tasteroute-web-grosterx` — static site.
-3. Заполнить `DATABASE_URL` и `REDIS_URL` в API-сервисе.
-4. `GUEST_JWT_SECRET`, `RESTAURANT_JWT_SECRET` и `ADMIN_TOKEN` Render сгенерирует сам.
-
-API при старте выполняет `./migrate up`, затем запускает сервер. Это описано в `dockerCommand`.
-
-### 5. Каталог в БД
-
-Добавить в GitHub Actions secret `DATABASE_URL` и вручную запустить workflow **DB setup**. Он выполнит миграции и seed.
-
-Либо локально:
-
-```powershell
-$env:DATABASE_URL='postgres://...'
-$env:GOTOOLCHAIN='local'
-go run ./cmd/migrate up
-go run ./cmd/seed
+```bash
+apt-get update && apt-get -y upgrade
+apt-get install -y curl git ufw ca-certificates caddy
+timedatectl set-timezone Europe/Moscow
+ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp && ufw --force enable
+curl -fsSL https://get.docker.com | sh
 ```
 
-### 6. Проверка
+Наружу открыты только `22`, `80` и `443`.
 
-- Web: `https://tasteroute-web-grosterx.onrender.com`
-- API: `https://tasteroute-api-grosterx.onrender.com/tasteroute/api/healthz`
-- Админка: `https://tasteroute-web-grosterx.onrender.com/admin`
-- B2B-панель: `https://tasteroute-web-grosterx.onrender.com/admin/b2b`
-- `ADMIN_TOKEN` смотреть в Environment API-сервиса Render.
+### 2. Код и `.env`
 
-## Ограничения бесплатного тарифа
+```bash
+git clone https://github.com/Grosterx/TasteRoute.git /opt/tasteroute
+cd /opt/tasteroute
+umask 077
+cat > .env <<EOF
+APP_ENV=production
+GUEST_JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+RESTAURANT_JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+ADMIN_TOKEN=$(openssl rand -hex 24)
+CORS_ORIGINS=https://194-226-54-219.nip.io
+PUBLIC_APP_URL=https://194-226-54-219.nip.io
+EOF
+chmod 600 .env
+```
 
-- Render Free засыпает после простоя; первый запрос может занять до минуты.
-- Supabase Free может приостанавливать проект при неактивности.
-- Upstash Free имеет лимиты команд и памяти.
+`nip.io` — бесплатный DNS: адрес `194.226.54.219` превращается в `194-226-54-219.nip.io`. Регистрация и паспорт не нужны, Let's Encrypt выдаёт сертификат на этот домен.
+
+### 3. Запуск
+
+```bash
+docker compose up -d --build
+docker compose --profile seed run --rm seed
+```
+
+`migrate` применяет миграции при старте `api`, seed загружает 20 ресторанов и 100 блюд Тольятти. `api` и `web` слушают только `127.0.0.1`, поэтому единственная точка входа — Caddy.
+
+### 4. Caddy и HTTPS
+
+`/etc/caddy/Caddyfile`:
+
+```caddyfile
+194-226-54-219.nip.io {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:5173
+}
+```
+
+```bash
+systemctl enable --now caddy
+systemctl reload caddy
+```
+
+Caddy сам получает и продлевает сертификат Let's Encrypt. `web/nginx.conf` пробрасывает `X-Forwarded-For`, поэтому rate limit и дедупликация просмотров видят реальный IP гостя.
+
+### 5. Проверка
+
+```bash
+curl -fsS https://194-226-54-219.nip.io/tasteroute/api/healthz
+curl -fsS https://194-226-54-219.nip.io/tasteroute/api/public/config
+```
+
+Ожидается `{"ok":true}` и `{"public_app_url":"https://194-226-54-219.nip.io"}`.
+
+Полный сценарий против прода с Windows:
+
+```powershell
+$env:API_BASE='https://194-226-54-219.nip.io/tasteroute/api'
+$env:ADMIN_TOKEN='...'   # значение из /opt/tasteroute/.env
+node scripts/smoke.mjs
+```
+
+### 6. Обновление
+
+```bash
+cd /opt/tasteroute
+git pull
+docker compose up -d --build
+```
+
+Миграции применяются автоматически сервисом `migrate`. Если менялись зависимости frontend, `--build` пересоберёт образ `web`.
+
+### 7. Бэкапы
+
+Ежедневный дамп в `03:30` и недельная очистка образов описаны в `/etc/cron.d/tasteroute`, скрипт — `/usr/local/bin/tasteroute-backup.sh`:
+
+```bash
+docker compose exec -T postgres pg_dump -U tasteroute tasteroute | gzip > /var/backups/tasteroute/db-$(date +%F).sql.gz
+```
+
+Дампы хранятся 7 дней. Скопировать свежий дамп на ПК:
+
+```powershell
+.\scripts\pull-backup.ps1
+```
+
+Восстановление на новом сервере:
+
+```bash
+gunzip -c db-2026-11-11.sql.gz | docker compose exec -T postgres psql -U tasteroute -d tasteroute
+```
+
+### 8. SSH
+
+Вход только по ключу: `PermitRootLogin prohibit-password`, `PasswordAuthentication no`. Провайдер кладёт `/etc/ssh/sshd_config.d/00-freetato.conf` с `yes`, а sshd берёт первое встреченное значение, поэтому локальный drop-in назван так, чтобы читаться раньше: `/etc/ssh/sshd_config.d/00-00-hardening.conf`.
+
+```bash
+ssh -i ~/.ssh/tasteroute_vps root@194.226.54.219
+```
+
+Ротация секретов: поменять значение в `/opt/tasteroute/.env` и выполнить `docker compose up -d api`. Смена `RESTAURANT_JWT_SECRET` разлогинивает кабинеты, `ADMIN_TOKEN` — админку.
+
+## Ограничения и эксплуатация
+
+- VPS Freetato: при неоплате VM останавливается, через 14 дней удаляется вместе с диском и бэкапами. Код в GitHub, база — в дампе на ПК.
+- `nip.io` зависит от доступности их DNS и Let's Encrypt; при смене IP меняется и адрес.
 - Демо рассчитано на один город — Тольятти.
 - Нет оплаты, доставки и интеграции с внешними картами.
 - Фото задаются URL, загрузки файлов нет.
-- Публичный туннель — только для демонстрации. У него нет гарантии uptime, URL может измениться, а старые ссылки перестанут работать.
+- `8080`, `5432` и `6379` наружу не публикуются.
 
 ## Структура
 

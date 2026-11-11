@@ -41,3 +41,7 @@ freetato.js
 plans.json
 plans2.json
 vps-*.txt
+
+# offsite database dumps
+backups/
+*.sql.gz

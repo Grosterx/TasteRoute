@@ -49,11 +49,12 @@ B2B-сценарий — основной:
 ## Стек
 
 - Backend: Go 1.23, chi, pgx, goose, JWT, bcrypt, gorilla/websocket, go-redis.
-- DB: PostgreSQL (Supabase Free).
-- Cache: Redis (Upstash Free).
+- DB: PostgreSQL 17 в Docker на VPS.
+- Cache: Redis 8 в Docker на VPS.
 - Frontend: Vite, React 18, TypeScript, Tailwind, React Query, framer-motion, qrcode, PWA.
-- Runtime: Docker.
-- Deploy: Render Free Web Service + Static Site, GitHub Actions.
+- Runtime: Docker Compose.
+- Edge: Caddy + Let's Encrypt + бесплатный `nip.io`.
+- Prod: VPS Freetato (Debian 13), `https://194-226-54-219.nip.io`.
 - CI: GitHub Actions.
 
 ## API
@@ -124,11 +125,11 @@ WS-сообщения:
 - `APP_PATH_PREFIX` — по умолчанию `/tasteroute/api`
 - `CORS_ORIGINS` — через запятую
 - `PUBLIC_APP_URL` — публичный origin для ссылок-приглашений
-- `TUNNEL_PROVIDER` — `serveo`, `ngrok` или `cloudflare`, по умолчанию `serveo`
-- `SERVEO_SUBDOMAIN` — поддомен Serveo без `.serveo.net`
-- `SERVEO_SSH_PORT` — SSH-порт Serveo, по умолчанию `443`
-- `SERVEO_SSH_KEY` — путь к SSH-ключу Serveo
-- `NGROK_DOMAIN` — статический домен ngrok без `https://`
+- `TUNNEL_PROVIDER` — legacy, локальный туннель: `serveo`, `ngrok` или `cloudflare`
+- `SERVEO_SUBDOMAIN` — legacy, поддомен Serveo без `.serveo.net`
+- `SERVEO_SSH_PORT` — legacy, SSH-порт Serveo, по умолчанию `443`
+- `SERVEO_SSH_KEY` — legacy, путь к SSH-ключу Serveo
+- `NGROK_DOMAIN` — legacy, статический домен ngrok без `https://`
 - `SEEDS_DIR` — по умолчанию `seeds`
 
 Frontend:
@@ -176,12 +177,24 @@ go run ./cmd/migrate up
 go run ./cmd/seed
 ```
 
+## Прод и эксплуатация
+
+- Прод: VPS Freetato (Debian 13), код в `/opt/tasteroute`, стек в Docker Compose, TLS и прокси — Caddy, домен — `nip.io`.
+- Ссылка: `https://194-226-54-219.nip.io`. Админка `/admin`, B2B `/admin/b2b`, кабинет `/restaurant/login`.
+- Наружу открыты только `22`, `80`, `443`; `api` и `web` слушают `127.0.0.1`.
+- `APP_ENV=production` включает HSTS. `CORS_ORIGINS` и `PUBLIC_APP_URL` указывают на публичный origin.
+- Секреты только в `/opt/tasteroute/.env` (`chmod 600`), в git не попадают.
+- Обновление: `cd /opt/tasteroute && git pull && docker compose up -d --build`. Миграции применяет сервис `migrate`.
+- Бэкапы: `/usr/local/bin/tasteroute-backup.sh` по cron в `03:30`, дампы в `/var/backups/tasteroute` за 7 дней; `scripts/pull-backup.ps1` копирует свежий дамп на ПК.
+- SSH только по ключу. Провайдерский `00-freetato.conf` включает пароль, поэтому локальный drop-in `00-00-hardening.conf` должен читаться раньше: sshd берёт первое значение.
+- При неоплате VPS останавливается и через 14 дней удаляется вместе с бэкапами; актуальная база должна быть в дампе на ПК.
+
 ## Правила работы
 
 - Секреты не коммитить; `.env` в `.gitignore`.
 - Реальный `CP_OS_PASS`, засветившийся в чате, не использовать и ротировать.
 - Не добавлять Telegram, RabbitMQ, worker, CloudAMQP, email/SMS и биллинг без нового решения пользователя.
-- Не ломать бесплатный сценарий деплоя.
+- Не ломать прод-сценарий на VPS и бесплатный локальный запуск.
 - После изменений backend: `gofmt`, `go test ./...`, `go vet ./...`.
 - После изменений frontend: `pnpm lint`, `pnpm build`.
 - Для проверки API/WS использовать `scripts/smoke.mjs`.
@@ -192,5 +205,5 @@ go run ./cmd/seed
 - `docker compose up -d --build` поднимает web, api, postgres, redis.
 - `node scripts/smoke.mjs` проходит городской сценарий и B2B: публичная страница, создание ресторана и аккаунта, комната ресторана, мэтч, бронь, кабинет, аналитика, продажа лида, админка.
 - `pnpm build` собирает PWA.
-- `render.yaml` описывает бесплатный деплой.
+- Прод открывается по `https://194-226-54-219.nip.io`, `healthz` отвечает `{"ok":true}`.
 - README позволяет повторить запуск и деплой с нуля.

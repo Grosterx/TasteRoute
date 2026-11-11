@@ -7,6 +7,7 @@ import {
   Loader2,
   QrCode,
   Sparkles,
+  Trophy,
   Users,
   UtensilsCrossed,
 } from 'lucide-react'
@@ -35,6 +36,12 @@ export function RestaurantOverview() {
     enabled: Boolean(session?.token),
     retry: false,
   })
+  const weekQuery = useQuery({
+    queryKey: ['restaurant-analytics', session?.token, 'week'],
+    queryFn: () => api.restaurantAnalytics(session!.token, dateDaysAgo(6), todayISO()),
+    enabled: Boolean(session?.token),
+    retry: false,
+  })
 
   if (!session) return <Navigate to="/restaurant/login" replace />
 
@@ -42,6 +49,15 @@ export function RestaurantOverview() {
   const bookings = bookingsQuery.data ?? []
   const dishes = dishesQuery.data ?? []
   const newBookings = bookings.filter((item) => item.status === 'new')
+  const topWeekDishes = weekQuery.data?.top_dishes ?? []
+  const weekHit = topWeekDishes.reduce<typeof topWeekDishes[number] | null>((best, item) => {
+    if (!best) return item
+    if (item.matches > best.matches || (item.matches === best.matches && item.likes > best.likes)) {
+      return item
+    }
+    return best
+  }, null)
+  const weekHitDish = weekHit ? dishes.find((dish) => dish.dish_id === weekHit.dish_id) : null
 
   const cards = [
     {
@@ -152,6 +168,39 @@ export function RestaurantOverview() {
         </div>
 
         <div className="space-y-4">
+          {weekHit ? (
+            <div className="surface overflow-hidden">
+              <div className="flex items-start justify-between gap-3 border-b border-cream-200/[0.07] bg-gradient-to-br from-saffron-500/12 to-transparent p-5 sm:p-6">
+                <div>
+                  <p className="eyebrow">Хит недели</p>
+                  <h3 className="mt-2 font-display text-xl font-bold leading-tight text-cream-50">
+                    {weekHit.name}
+                  </h3>
+                  <p className="mt-1.5 text-xs text-cream-300/50">
+                    {weekHit.likes} лайков · {weekHit.matches} совпадений за 7 дней
+                  </p>
+                </div>
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-saffron-400 text-ink-950">
+                  <Trophy size={19} />
+                </div>
+              </div>
+              {weekHitDish?.image_url ? (
+                <img
+                  src={weekHitDish.image_url}
+                  alt={weekHit.name}
+                  className="h-36 w-full object-cover"
+                  loading="lazy"
+                />
+              ) : null}
+              <Link
+                to="/restaurant/analytics"
+                className="flex items-center justify-between px-5 py-3.5 text-sm font-semibold text-saffron-300 transition hover:text-saffron-400"
+              >
+                Смотреть аналитику
+                <ArrowRight size={15} />
+              </Link>
+            </div>
+          ) : null}
           <div className="surface p-5 sm:p-6">
             <p className="eyebrow">Меню</p>
             <p className="mt-2 font-display text-3xl font-bold text-cream-50">{dishes.length}</p>

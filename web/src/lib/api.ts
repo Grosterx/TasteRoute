@@ -121,6 +121,8 @@ type DishInput = {
   category: string
   sort_order: number
   active?: boolean
+  blind?: boolean
+  blind_riddle?: string
 }
 
 export const api = {

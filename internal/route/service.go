@@ -21,7 +21,7 @@ const (
 
 func BuildForRoom(ctx context.Context, db *pgxpool.Pool, roomID string) (Route, error) {
 	rows, err := db.Query(ctx, `
-		SELECT m.dish_id, d.name, r.id, r.name, r.address, r.lat, r.lon
+		SELECT m.dish_id, d.name, d.blind, r.id, r.name, r.address, r.lat, r.lon
 		FROM matches m
 		JOIN dishes d ON d.id = m.dish_id
 		JOIN restaurants r ON r.id = d.restaurant_id
@@ -37,7 +37,8 @@ func BuildForRoom(ctx context.Context, db *pgxpool.Pool, roomID string) (Route, 
 	for rows.Next() {
 		var dishID, dishName, restaurantID, restaurantName, address string
 		var lat, lon float64
-		if err := rows.Scan(&dishID, &dishName, &restaurantID, &restaurantName, &address, &lat, &lon); err != nil {
+		var blind bool
+		if err := rows.Scan(&dishID, &dishName, &blind, &restaurantID, &restaurantName, &address, &lat, &lon); err != nil {
 			return Route{}, fmt.Errorf("scan match: %w", err)
 		}
 		stop, ok := byRestaurant[restaurantID]
@@ -53,7 +54,7 @@ func BuildForRoom(ctx context.Context, db *pgxpool.Pool, roomID string) (Route, 
 			byRestaurant[restaurantID] = stop
 			order = append(order, restaurantID)
 		}
-		stop.Dishes = append(stop.Dishes, DishRef{DishID: dishID, Name: dishName})
+		stop.Dishes = append(stop.Dishes, DishRef{DishID: dishID, Name: dishName, Blind: blind})
 	}
 	if err := rows.Err(); err != nil {
 		return Route{}, fmt.Errorf("iterate matches: %w", err)

@@ -23,6 +23,8 @@ type Dish struct {
 	Category     string   `json:"category"`
 	SortOrder    int      `json:"sort_order"`
 	Active       bool     `json:"active"`
+	Blind        bool     `json:"blind"`
+	BlindRiddle  string   `json:"blind_riddle"`
 }
 
 type DishInput struct {
@@ -34,12 +36,35 @@ type DishInput struct {
 	Category    string   `json:"category"`
 	SortOrder   int      `json:"sort_order"`
 	Active      *bool    `json:"active"`
+	Blind       *bool    `json:"blind"`
+	BlindRiddle string   `json:"blind_riddle"`
+}
+
+// blindDishName — как секретное блюдо выглядит для гостей до мэтча.
+const blindDishName = "Блюдо вслепую"
+
+// MaskedForGuests прячет название, фото и теги секретного блюда: вместо них гости видят загадку.
+func (d Dish) MaskedForGuests() Dish {
+	if !d.Blind {
+		return d
+	}
+	masked := d
+	masked.Name = blindDishName
+	masked.Description = strings.TrimSpace(d.BlindRiddle)
+	if masked.Description == "" {
+		masked.Description = "Шеф прячет название — попробуйте угадать по вкусу"
+	}
+	masked.ImageURL = ""
+	masked.Tags = []string{}
+	masked.BlindRiddle = ""
+	return masked
 }
 
 func ListDishes(ctx context.Context, db *pgxpool.Pool, restaurantID string, activeOnly bool) ([]Dish, error) {
 	rows, err := db.Query(ctx, `
 		SELECT id, restaurant_id, name, COALESCE(description, ''), price, tags,
-		       COALESCE(image_url, ''), category, sort_order, active
+		       COALESCE(image_url, ''), category, sort_order, active,
+		       blind, COALESCE(blind_riddle, '')
 		FROM dishes
 		WHERE restaurant_id = $1 AND ($2 = false OR active)
 		ORDER BY category, sort_order, name`, restaurantID, activeOnly)
@@ -53,7 +78,7 @@ func ListDishes(ctx context.Context, db *pgxpool.Pool, restaurantID string, acti
 		var d Dish
 		if err := rows.Scan(
 			&d.DishID, &d.RestaurantID, &d.Name, &d.Description, &d.Price, &d.Tags,
-			&d.ImageURL, &d.Category, &d.SortOrder, &d.Active,
+			&d.ImageURL, &d.Category, &d.SortOrder, &d.Active, &d.Blind, &d.BlindRiddle,
 		); err != nil {
 			return nil, fmt.Errorf("scan dish: %w", err)
 		}
@@ -77,20 +102,22 @@ func CreateDish(ctx context.Context, db *pgxpool.Pool, restaurantID string, inpu
 	if input.Active != nil {
 		active = *input.Active
 	}
+	blind := input.Blind != nil && *input.Blind
 	var d Dish
 	err = db.QueryRow(ctx, `
 		INSERT INTO dishes (
 			id, restaurant_id, name, description, price, tags, image_url,
-			category, sort_order, active
+			category, sort_order, active, blind, blind_riddle
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 		RETURNING id, restaurant_id, name, COALESCE(description, ''), price, tags,
-		          COALESCE(image_url, ''), category, sort_order, active`,
+		          COALESCE(image_url, ''), category, sort_order, active,
+		          blind, COALESCE(blind_riddle, '')`,
 		id.New(), restaurantID, input.Name, input.Description, input.Price, input.Tags,
-		input.ImageURL, input.Category, input.SortOrder, active,
+		input.ImageURL, input.Category, input.SortOrder, active, blind, input.BlindRiddle,
 	).Scan(
 		&d.DishID, &d.RestaurantID, &d.Name, &d.Description, &d.Price, &d.Tags,
-		&d.ImageURL, &d.Category, &d.SortOrder, &d.Active,
+		&d.ImageURL, &d.Category, &d.SortOrder, &d.Active, &d.Blind, &d.BlindRiddle,
 	)
 	if err != nil {
 		return Dish{}, fmt.Errorf("create dish: %w", err)
@@ -111,15 +138,16 @@ func UpdateDish(ctx context.Context, db *pgxpool.Pool, restaurantID, dishID stri
 		UPDATE dishes SET
 			name = $3, description = $4, price = $5, tags = $6, image_url = $7,
 			category = $8, sort_order = $9, active = COALESCE($10, active),
-			updated_at = now()
+			blind = COALESCE($11, blind), blind_riddle = $12, updated_at = now()
 		WHERE id = $1 AND restaurant_id = $2
 		RETURNING id, restaurant_id, name, COALESCE(description, ''), price, tags,
-		          COALESCE(image_url, ''), category, sort_order, active`,
+		          COALESCE(image_url, ''), category, sort_order, active,
+		          blind, COALESCE(blind_riddle, '')`,
 		dishID, restaurantID, input.Name, input.Description, input.Price, input.Tags,
-		input.ImageURL, input.Category, input.SortOrder, input.Active,
+		input.ImageURL, input.Category, input.SortOrder, input.Active, input.Blind, input.BlindRiddle,
 	).Scan(
 		&d.DishID, &d.RestaurantID, &d.Name, &d.Description, &d.Price, &d.Tags,
-		&d.ImageURL, &d.Category, &d.SortOrder, &d.Active,
+		&d.ImageURL, &d.Category, &d.SortOrder, &d.Active, &d.Blind, &d.BlindRiddle,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Dish{}, ErrNotFound
@@ -171,6 +199,13 @@ func validateDishInput(input DishInput) (DishInput, error) {
 	}
 	if len(input.Tags) > 10 {
 		return DishInput{}, fmt.Errorf("%w: too many tags", ErrInvalid)
+	}
+	input.BlindRiddle = strings.TrimSpace(input.BlindRiddle)
+	if len([]rune(input.BlindRiddle)) > 200 {
+		return DishInput{}, fmt.Errorf("%w: blind riddle is too long", ErrInvalid)
+	}
+	if input.Blind != nil && *input.Blind && input.BlindRiddle == "" {
+		return DishInput{}, fmt.Errorf("%w: blind riddle is required", ErrInvalid)
 	}
 	tags := make([]string, 0, len(input.Tags))
 	seen := make(map[string]struct{}, len(input.Tags))

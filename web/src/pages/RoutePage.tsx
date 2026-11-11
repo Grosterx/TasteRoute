@@ -1,9 +1,20 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, CalendarCheck, CheckCircle2, Loader2, MapPin, Route, Send, Utensils } from 'lucide-react'
+import {
+  ArrowLeft,
+  CalendarCheck,
+  CheckCircle2,
+  EyeOff,
+  Loader2,
+  MapPin,
+  Route,
+  Send,
+  Utensils,
+} from 'lucide-react'
 import { ApiError, api } from '../lib/api'
 import { getSession } from '../lib/session'
+import { MatchRoulette } from '../components/MatchRoulette'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Textarea } from '../components/ui/Textarea'
@@ -125,6 +136,7 @@ export function RoutePage() {
 
   const route = routeQuery.data
   const dishCount = route.stops.reduce((total, stop) => total + stop.dishes.length, 0)
+  const routeDishes = route.stops.flatMap((stop) => stop.dishes)
 
   return (
     <div className="mx-auto max-w-4xl space-y-7">
@@ -187,8 +199,17 @@ export function RoutePage() {
                         key={dish.dish_id}
                         className="flex items-center gap-2 rounded-xl border border-cream-200/[0.07] bg-cream-50/[0.025] px-3 py-2 text-sm text-cream-200/75"
                       >
-                        <Utensils size={13} className="text-saffron-400" />
-                        {dish.name}
+                        {dish.blind ? (
+                          <EyeOff size={13} className="shrink-0 text-saffron-400" />
+                        ) : (
+                          <Utensils size={13} className="shrink-0 text-saffron-400" />
+                        )}
+                        <span className="truncate">{dish.name}</span>
+                        {dish.blind ? (
+                          <span className="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wider text-saffron-300">
+                            было вслепую
+                          </span>
+                        ) : null}
                       </div>
                     ))}
                   </div>
@@ -282,6 +303,8 @@ export function RoutePage() {
           </p>
         </div>
       </div>
+
+      {routeDishes.length >= 2 ? <MatchRoulette dishes={routeDishes} /> : null}
     </div>
   )
 }

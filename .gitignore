@@ -34,3 +34,10 @@ cloudflared.exe
 cloudflared
 tunnel*.log
 tunnel*.err
+
+# provider panel scrapes (local scratch, never commit)
+freetato.html
+freetato.js
+plans.json
+plans2.json
+vps-*.txt

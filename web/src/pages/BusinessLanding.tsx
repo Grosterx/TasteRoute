@@ -266,7 +266,6 @@ export function BusinessLanding() {
             <h3 className="mt-3 font-display text-2xl font-bold text-cream-50">Когда лучше подождать</h3>
             <ul className="mt-4 space-y-3 text-sm leading-relaxed text-cream-300/60">
               {[
-                'Фастфуд и доставка без посадочных мест.',
                 'Крупные сети с собственной CRM и приложением.',
                 'Заведения, где бронь не нужна в принципе.',
               ].map((item) => (

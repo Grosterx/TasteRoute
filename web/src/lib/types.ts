@@ -17,6 +17,7 @@ export type Dish = {
   price: number
   tags: string[]
   image_url: string
+  blind?: boolean
   restaurant_id: string
   restaurant_name: string
   restaurant_address: string
@@ -26,6 +27,7 @@ export type Dish = {
 export type DishRef = {
   dish_id: string
   name: string
+  blind?: boolean
 }
 
 export type Stop = {
@@ -57,6 +59,8 @@ export type Lead = {
 
 export type Match = {
   dish_id: string
+  dish_name?: string
+  blind?: boolean
   likes: number
 }
 
@@ -101,6 +105,8 @@ export type MenuDish = {
   category: string
   sort_order: number
   active: boolean
+  blind: boolean
+  blind_riddle: string
 }
 
 export type PublicRestaurant = Restaurant & {
@@ -131,6 +137,7 @@ export type SelectionDish = {
   tags: string[]
   image_url: string
   likes: number
+  blind?: boolean
 }
 
 export type Booking = {

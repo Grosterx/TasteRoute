@@ -1,4 +1,4 @@
-export type FunFeature = 'shawarma' | 'horoscope'
+export type FunFeature = 'shawarma' | 'horoscope' | 'tarot' | 'pair'
 
 export type FunAccent = 'saffron' | 'basil' | 'tomato'
 
@@ -16,6 +16,16 @@ export type FunIcon =
   | 'wheat'
   | 'donut'
   | 'candy'
+  | 'wine'
+  | 'fish'
+  | 'beef'
+  | 'pizza'
+  | 'salad'
+  | 'soup'
+  | 'coffee'
+  | 'icecream'
+  | 'drumstick'
+  | 'citrus'
 
 export type FunResult = {
   id: string
@@ -82,6 +92,28 @@ export const funFeatures: FunFeatureMeta[] = [
     action: 'Погадать на булке',
     icon: 'croissant',
     accent: 'basil',
+  },
+  {
+    id: 'tarot',
+    path: '/fun#tarot',
+    eyebrow: 'Гадание на аппетит',
+    title: 'Расклад на вечер',
+    description:
+      'Перетасуй гастро-колоду и вытяни три карты: аперитив, основное и десерт. Расклад меняется каждый день.',
+    action: 'Вытянуть три карты',
+    icon: 'moon',
+    accent: 'tomato',
+  },
+  {
+    id: 'pair',
+    path: '/fun#pair',
+    eyebrow: 'Тест на двоих',
+    title: 'Гастро-совместимость пары',
+    description:
+      'Пять вопросов — и процент совпадения вкусов. Передайте телефон друг другу и узнайте, совместимы ли вы за одним столом.',
+    action: 'Проверить совместимость',
+    icon: 'heart',
+    accent: 'tomato',
   },
 ]
 
@@ -346,6 +378,586 @@ export const bunResults: FunResult[] = [
   },
 ]
 
+export type TarotPosition = 'aperitif' | 'main' | 'dessert'
+
+export type TarotCard = FunResult & { position: TarotPosition }
+
+export type TarotPositionMeta = {
+  id: TarotPosition
+  label: string
+  hint: string
+}
+
+export const tarotPositions: TarotPositionMeta[] = [
+  { id: 'aperitif', label: 'Аперитив', hint: 'Чем открыть вечер' },
+  { id: 'main', label: 'Основное', hint: 'Что станет главным' },
+  { id: 'dessert', label: 'Десерт', hint: 'Чем закончить' },
+]
+
+export const tarotAperitifCards: TarotCard[] = [
+  {
+    id: 'ap-crunch',
+    feature: 'tarot',
+    position: 'aperitif',
+    title: 'Карта Хруста',
+    subtitle: 'Лёгкие закуски к старту',
+    description:
+      'Вечер начнётся звонко: брускетты, чипсы из лаваша и что-то похрустеть под первый тост. Аппетит проснётся раньше, чем вы успеете договорить тост.',
+    traits: ['лёгкость', 'разгон'],
+    pairing: 'С лимонадом и первой шуткой вечера.',
+    icon: 'wheat',
+    accent: 'saffron',
+  },
+  {
+    id: 'ap-fizz',
+    feature: 'tarot',
+    position: 'aperitif',
+    title: 'Бокал Пузырьков',
+    subtitle: 'Игристое настроение',
+    description:
+      'Вечер стартует с шипения: просекко, сидр или просто газировка со льдом. Пузырьки поднимут настроение, а тост поднимет бокалы.',
+    traits: ['праздничность', 'искристость'],
+    pairing: 'С оливками и хорошей компанией.',
+    icon: 'wine',
+    accent: 'basil',
+  },
+  {
+    id: 'ap-olive',
+    feature: 'tarot',
+    position: 'aperitif',
+    title: 'Оливковая Луна',
+    subtitle: 'Оливки и тапас',
+    description:
+      'Медленное начало: оливки, хамон, маленькие тарелки на всех. Вечер никуда не спешит — и это его лучшая черта.',
+    traits: ['неспешность', 'изящество'],
+    pairing: 'С вермутом или тихим разговором.',
+    icon: 'moon',
+    accent: 'basil',
+  },
+  {
+    id: 'ap-tide',
+    feature: 'tarot',
+    position: 'aperitif',
+    title: 'Креветочный Прилив',
+    subtitle: 'Морской старт',
+    description:
+      'К вечеру тянет к морю: креветки, мидии, кальмар на гриле. Аппетит приходит волнами — и первая уже близко.',
+    traits: ['смелость', 'морской вайб'],
+    pairing: 'С белым вином или лимонадом.',
+    icon: 'fish',
+    accent: 'saffron',
+  },
+  {
+    id: 'ap-cheese',
+    feature: 'tarot',
+    position: 'aperitif',
+    title: 'Сырная Комета',
+    subtitle: 'Сырная тарелка',
+    description:
+      'Яркий пролёт над столом: бри, дор блю, чеддер и немного мёда. Комета сыра не оставит равнодушных — проверено звёздами.',
+    traits: ['насыщенность', 'яркость'],
+    pairing: 'С грушей, мёдом и бокалом красного.',
+    icon: 'sparkles',
+    accent: 'saffron',
+  },
+  {
+    id: 'ap-sun',
+    feature: 'tarot',
+    position: 'aperitif',
+    title: 'Капрезе Солнце',
+    subtitle: 'Свежий салат',
+    description:
+      'Ясное начало: томаты, моцарелла, базилик. Вечер обещает быть свежим, лёгким и без тяжести — как летний полдень.',
+    traits: ['свежесть', 'простота'],
+    pairing: 'С холодным напитком и улыбкой.',
+    icon: 'citrus',
+    accent: 'basil',
+  },
+  {
+    id: 'ap-bowl',
+    feature: 'tarot',
+    position: 'aperitif',
+    title: 'Дымящаяся Чаша',
+    subtitle: 'Тёплый старт',
+    description:
+      'Вечер откроется теплом: бульон, крем-суп или гаспачо, если жарко. Первая ложка — и разговоры пойдут сами собой.',
+    traits: ['тепло', 'забота'],
+    pairing: 'С хлебом и неторопливой беседой.',
+    icon: 'soup',
+    accent: 'tomato',
+  },
+  {
+    id: 'ap-bread',
+    feature: 'tarot',
+    position: 'aperitif',
+    title: 'Тёплый Лаваш',
+    subtitle: 'Хлеб и намазки',
+    description:
+      'Старт по-домашнему: тёплый хлеб, хумус, паштет. Все тянутся к столу руками — значит, вечер уже удался.',
+    traits: ['уют', 'щедрость'],
+    pairing: 'С мягким светом и близкими.',
+    icon: 'wheat',
+    accent: 'saffron',
+  },
+]
+
+export const tarotMainCards: TarotCard[] = [
+  {
+    id: 'mn-emperor',
+    feature: 'tarot',
+    position: 'main',
+    title: 'Сытный Император',
+    subtitle: 'Мясо на гриле, всерьёз',
+    description:
+      'Главное блюдо вечера — вес и характер: стейк, картошка, соус. Император не признаёт полумер, зато голодным никто не останется.',
+    traits: ['основательность', 'характер'],
+    pairing: 'С красным вином и большим аппетитом.',
+    icon: 'beef',
+    accent: 'tomato',
+  },
+  {
+    id: 'mn-devil',
+    feature: 'tarot',
+    position: 'main',
+    title: 'Дьявольский Перец',
+    subtitle: 'Острое основное',
+    description:
+      'Вечер обещает искры: перец чили, халапеньо, огонь в соусе. Сначала страсть, потом слёзы, потом добавка. Дьявол знает, что делает.',
+    traits: ['острота', 'смелость'],
+    pairing: 'С айраном — чтобы потушить.',
+    icon: 'flame',
+    accent: 'tomato',
+  },
+  {
+    id: 'mn-fortune',
+    feature: 'tarot',
+    position: 'main',
+    title: 'Пицца Фортуны',
+    subtitle: 'Круглое счастье на всех',
+    description:
+      'Судьба раскатала вечер в идеальный круг: пицца, сырные борта, топпинги на любой вкус. От колеса не убежать — да и зачем.',
+    traits: ['щедрость', 'делёж'],
+    pairing: 'С компанией от трёх человек.',
+    icon: 'pizza',
+    accent: 'saffron',
+  },
+  {
+    id: 'mn-ramen',
+    feature: 'tarot',
+    position: 'main',
+    title: 'Рамен Дождей',
+    subtitle: 'Азиатская чаша',
+    description:
+      'Вечер с характером умами: бульон, лапша, яйцо вкрутую и зелёный лук. Дождь за окном не помеха — особенно если он в рамене.',
+    traits: ['глубина', 'умами'],
+    pairing: 'С палочками и неспешностью.',
+    icon: 'soup',
+    accent: 'saffron',
+  },
+  {
+    id: 'mn-king',
+    feature: 'tarot',
+    position: 'main',
+    title: 'Рыбный Король',
+    subtitle: 'Рыба на гриле',
+    description:
+      'Главное блюдо сегодня из воды: лосось, дорадо или сибас. Король сидит на троне из лимона и требует к себе уважения.',
+    traits: ['нежность', 'статус'],
+    pairing: 'С белым вином и долькой лимона.',
+    icon: 'fish',
+    accent: 'basil',
+  },
+  {
+    id: 'mn-burger',
+    feature: 'tarot',
+    position: 'main',
+    title: 'Бургер Бессмертия',
+    subtitle: 'Двухэтажная классика',
+    description:
+      'Вечер строится по бургерным законам: котлета, сыр, соус. Нижний этаж держит верхний — как хороший друг. Один бургер — и вечер бессмертен.',
+    traits: ['надёжность', 'масштаб'],
+    pairing: 'С картошкой и обеими руками.',
+    icon: 'sandwich',
+    accent: 'saffron',
+  },
+  {
+    id: 'mn-hermit',
+    feature: 'tarot',
+    position: 'main',
+    title: 'Овощной Отшельник',
+    subtitle: 'Растительное основное',
+    description:
+      'Тихая сила вечера: рататуй, овощи с гриля, фалафель. Отшельник не спорит с мясом — просто знает себе цену.',
+    traits: ['осознанность', 'лёгкость'],
+    pairing: 'С зелёным салатом и чистой совестью.',
+    icon: 'salad',
+    accent: 'basil',
+  },
+  {
+    id: 'mn-wings',
+    feature: 'tarot',
+    position: 'main',
+    title: 'Крылья Судьбы',
+    subtitle: 'Курица и азарт',
+    description:
+      'Вечер решается на косточке: крылья, соусы, азарт. Одна партия — и вы заказываете вторую. Судьба любит смелых.',
+    traits: ['азарт', 'веселье'],
+    pairing: 'С соусом блю-чиз и друзьями.',
+    icon: 'drumstick',
+    accent: 'tomato',
+  },
+]
+
+export const tarotDessertCards: TarotCard[] = [
+  {
+    id: 'ds-abyss',
+    feature: 'tarot',
+    position: 'dessert',
+    title: 'Шоколадная Бездна',
+    subtitle: 'Тёплый шоколад',
+    description:
+      'Вечер закончится глубоко: фондан с жидким центром. Бездна смотрит на вас — загляните и вы в неё.',
+    traits: ['глубина', 'сладость'],
+    pairing: 'С шариком мороженого.',
+    icon: 'candy',
+    accent: 'tomato',
+  },
+  {
+    id: 'ds-tart',
+    feature: 'tarot',
+    position: 'dessert',
+    title: 'Тарт Тузов',
+    subtitle: 'Выпечка по расчёту',
+    description:
+      'Финальная карта стола: рассыпчатый тарт с карамелью и щепоткой соли. Туз на столе — значит, вечер удался.',
+    traits: ['точность', 'сладость'],
+    pairing: 'С чаем и выдержкой.',
+    icon: 'croissant',
+    accent: 'saffron',
+  },
+  {
+    id: 'ds-moon',
+    feature: 'tarot',
+    position: 'dessert',
+    title: 'Мороженое Луны',
+    subtitle: 'Холодный финал',
+    description:
+      'Вечер остынет правильно: шарики мороженого, ягоды, мята. Луна говорит — если таять, то красиво.',
+    traits: ['лёгкость', 'нежность'],
+    pairing: 'С топпингом и звёздной ночью.',
+    icon: 'icecream',
+    accent: 'basil',
+  },
+  {
+    id: 'ds-truth',
+    feature: 'tarot',
+    position: 'dessert',
+    title: 'Чизкейк Истины',
+    subtitle: 'Печёная нежность',
+    description:
+      'Финал без обмана: чизкейк, который держит форму и обещание. Истина в том, что вы закажете ещё кусочек.',
+    traits: ['честность', 'нежность'],
+    pairing: 'С кофе без сахара.',
+    icon: 'cake',
+    accent: 'basil',
+  },
+  {
+    id: 'ds-eclair',
+    feature: 'tarot',
+    position: 'dessert',
+    title: 'Эклер Ветров',
+    subtitle: 'Лёгкий финал',
+    description:
+      'Вечер унесёт ветром сладости: эклер, крем, глазурь. Лёгкий, как последний разговор перед тем, как разойтись.',
+    traits: ['лёгкость', 'воздух'],
+    pairing: 'С какао и короткой прогулкой.',
+    icon: 'croissant',
+    accent: 'saffron',
+  },
+  {
+    id: 'ds-mist',
+    feature: 'tarot',
+    position: 'dessert',
+    title: 'Тирамису Туманов',
+    subtitle: 'Кофейная дымка',
+    description:
+      'Финал в дымке: маскарпоне, кофе, какао. «Подними меня» — говорит десерт, и вечер послушно поднимает.',
+    traits: ['загадка', 'уют'],
+    pairing: 'С эспрессо и неспешностью.',
+    icon: 'coffee',
+    accent: 'tomato',
+  },
+  {
+    id: 'ds-dawn',
+    feature: 'tarot',
+    position: 'dessert',
+    title: 'Фруктовый Рассвет',
+    subtitle: 'Свежий финал',
+    description:
+      'Вечер закончится светло: фрукты, сорбет, немного цитруса. Рассвет намекает — завтра тоже будет вкусно.',
+    traits: ['свежесть', 'лёгкость'],
+    pairing: 'С цитрусовым чаем.',
+    icon: 'citrus',
+    accent: 'basil',
+  },
+  {
+    id: 'ds-donut',
+    feature: 'tarot',
+    position: 'dessert',
+    title: 'Пончик Удачи',
+    subtitle: 'Кольцо на счастье',
+    description:
+      'Финал с дыркой и смыслом: пончик с глазурью. Кольцо удачи замыкает вечер — что начало, то и конец.',
+    traits: ['удача', 'веселье'],
+    pairing: 'С молоком и детским восторгом.',
+    icon: 'donut',
+    accent: 'saffron',
+  },
+]
+
+export const tarotCards: TarotCard[] = [
+  ...tarotAperitifCards,
+  ...tarotMainCards,
+  ...tarotDessertCards,
+]
+
+const tarotPools: Record<TarotPosition, TarotCard[]> = {
+  aperitif: tarotAperitifCards,
+  main: tarotMainCards,
+  dessert: tarotDessertCards,
+}
+
+function seededRandom(seed: number) {
+  let value = seed >>> 0
+  return () => {
+    value = (value * 1664525 + 1013904223) >>> 0
+    return value / 4294967296
+  }
+}
+
+export function tarotDateKey(date = new Date()) {
+  return date.toISOString().slice(0, 10)
+}
+
+export function drawTarotSpread(shuffle: number, dateKey: string): TarotCard[] {
+  const random = seededRandom(hashString(`${dateKey}:${shuffle}`))
+  return tarotPositions.map((position) => {
+    const pool = tarotPools[position.id]
+    return pool[Math.floor(random() * pool.length)]
+  })
+}
+
+export function encodeTarotSpread(cards: TarotCard[]) {
+  return cards.map((card) => card.id).join('.')
+}
+
+export function findTarotSpread(value: string | null): TarotCard[] | null {
+  if (!value) return null
+  const ids = value.split('.')
+  if (ids.length !== tarotPositions.length) return null
+  const order: TarotPosition[] = ['aperitif', 'main', 'dessert']
+  const cards: TarotCard[] = []
+  for (let index = 0; index < order.length; index += 1) {
+    const card = tarotCards.find((item) => item.id === ids[index] && item.position === order[index])
+    if (!card) return null
+    cards.push(card)
+  }
+  return cards
+}
+
+export function findTarotCard(id: string | null) {
+  if (!id) return null
+  return tarotCards.find((card) => card.id === id) ?? null
+}
+
+export function tarotSharePath(cards: TarotCard[]) {
+  return `/fun?spread=${encodeURIComponent(encodeTarotSpread(cards))}`
+}
+
+export function tarotShareText(cards: TarotCard[], origin: string) {
+  const names = cards.map((card) => card.title).join(' → ')
+  return `Мой расклад на вечер: ${names}. Вытяни свой — ${origin}/fun#tarot`
+}
+
+export type PairAxis = 'cozy' | 'adventure' | 'sweet' | 'spicy'
+
+export type PairProfile = Record<PairAxis, number>
+
+export type PairOption = {
+  id: string
+  label: string
+  weights: Partial<PairProfile>
+}
+
+export type PairQuestion = {
+  id: string
+  title: string
+  options: PairOption[]
+}
+
+export const pairAxes: { id: PairAxis; label: string }[] = [
+  { id: 'cozy', label: 'уют' },
+  { id: 'adventure', label: 'приключения' },
+  { id: 'sweet', label: 'сладкое' },
+  { id: 'spicy', label: 'острое' },
+]
+
+export const pairQuestions: PairQuestion[] = [
+  {
+    id: 'evening',
+    title: 'Идеальный вечер вдвоём — это…',
+    options: [
+      { id: 'candles', label: 'Ужин при свечах', weights: { cozy: 3 } },
+      { id: 'city', label: 'Шумный вечер в городе', weights: { adventure: 2, spicy: 1 } },
+      { id: 'plaid', label: 'Плед, сериал и доставка', weights: { cozy: 2, sweet: 1 } },
+      { id: 'new', label: 'Что-нибудь новенькое', weights: { adventure: 3 } },
+    ],
+  },
+  {
+    id: 'spice',
+    title: 'Остро или мягко?',
+    options: [
+      { id: 'fire', label: 'Огонь, без компромиссов', weights: { spicy: 3 } },
+      { id: 'mild', label: 'Слегка остренько', weights: { spicy: 1, adventure: 1, cozy: 1 } },
+      { id: 'creamy', label: 'Нежно и сливочно', weights: { sweet: 2, cozy: 1 } },
+      { id: 'sweet', label: 'Лучше сладкое', weights: { sweet: 3 } },
+    ],
+  },
+  {
+    id: 'friday',
+    title: 'Куда пойдём в пятницу?',
+    options: [
+      { id: 'sushi', label: 'Суши-бар', weights: { adventure: 1, spicy: 1, cozy: 1 } },
+      { id: 'pizza', label: 'Пиццерия', weights: { cozy: 1, sweet: 1, adventure: 1 } },
+      { id: 'cafe', label: 'Новая кофейня', weights: { sweet: 1, cozy: 2 } },
+      { id: 'street', label: 'Стритфуд-маркет', weights: { adventure: 2, spicy: 1 } },
+    ],
+  },
+  {
+    id: 'drink',
+    title: 'Твой напиток?',
+    options: [
+      { id: 'cocoa', label: 'Горячий шоколад', weights: { sweet: 2, cozy: 1 } },
+      { id: 'espresso', label: 'Двойной эспрессо', weights: { spicy: 1, adventure: 2 } },
+      { id: 'tea', label: 'Травяной чай', weights: { cozy: 2, sweet: 1 } },
+      { id: 'cocktail', label: 'Коктейль поострее', weights: { spicy: 2, adventure: 1 } },
+    ],
+  },
+  {
+    id: 'breakfast',
+    title: 'Завтрак мечты?',
+    options: [
+      { id: 'syrniki', label: 'Сырники со сметаной', weights: { sweet: 2, cozy: 1 } },
+      { id: 'chili', label: 'Яичница с перцем чили', weights: { spicy: 2, adventure: 1 } },
+      { id: 'croissant', label: 'Круассан с джемом', weights: { sweet: 1, cozy: 1, adventure: 1 } },
+      { id: 'bowl', label: 'Смузи-боул', weights: { sweet: 1, adventure: 2 } },
+    ],
+  },
+]
+
+export function pairProfile(answers: Record<string, string>): PairProfile {
+  const profile: PairProfile = { cozy: 0, adventure: 0, sweet: 0, spicy: 0 }
+  for (const question of pairQuestions) {
+    const option = question.options.find((item) => item.id === answers[question.id])
+    if (!option) continue
+    for (const [axis, weight] of Object.entries(option.weights)) {
+      profile[axis as PairAxis] += weight ?? 0
+    }
+  }
+  return profile
+}
+
+const PAIR_MAX_DIFF = pairQuestions.length * 6
+
+export function pairCompatibility(first: PairProfile, second: PairProfile) {
+  const diff = pairAxes.reduce(
+    (total, axis) => total + Math.abs(first[axis.id] - second[axis.id]),
+    0,
+  )
+  const percent = Math.round(100 - (diff / PAIR_MAX_DIFF) * 100)
+  return Math.max(5, Math.min(100, percent))
+}
+
+export function pairSharedAxis(first: PairProfile, second: PairProfile): PairAxis {
+  let best: PairAxis = 'cozy'
+  let bestScore = -1
+  for (const axis of pairAxes) {
+    const score = Math.min(first[axis.id], second[axis.id])
+    if (score > bestScore) {
+      bestScore = score
+      best = axis.id
+    }
+  }
+  return best
+}
+
+export function pairVerdict(percent: number) {
+  if (percent >= 85) {
+    return {
+      title: 'Кулинарные близнецы',
+      subtitle: 'Вы читаете друг друга как меню любимого кафе',
+      description:
+        'Ваши вкусы почти совпадают: вы одинаково выбираете и соус, и место, и время ужина. Опасность одна — вы будете спорить не о том, что заказать, а о том, кто последний кусочек отдаст.',
+    }
+  }
+  if (percent >= 65) {
+    return {
+      title: 'Вкусный тандем',
+      subtitle: 'Совпадает главное — остальное можно попробовать',
+      description:
+        'Вы согласны в больших вещах и играючи расходитесь в мелочах. Это лучший расклад для гастротура: один заказывает проверенное, второй тянет на эксперимент — и вы попробуете вдвое больше.',
+    }
+  }
+  if (percent >= 40) {
+    return {
+      title: 'Противоположные вкусы',
+      subtitle: 'Вы выбираете разное — и это плюс',
+      description:
+        'Там, где вы расходитесь, прячется главное удовольствие: делиться. Закажите оба варианта и меняйтесь тарелками — так вечер длиннее, а стол интереснее.',
+    }
+  }
+  return {
+    title: 'Разные гастро-вселенные',
+    subtitle: 'Вы бы выбрали разные рестораны — и это решаемо',
+    description:
+      'Ваши вкусы почти не пересекаются, зато компромисс найдётся всегда: свайпайте блюда в одной комнате, и совпавшие блюда станут вашим нейтральным полем. Или устройте гастротур на двоих.',
+  }
+}
+
+export function encodePairAnswers(first: Record<string, string>, second: Record<string, string>) {
+  const ids = (answers: Record<string, string>) =>
+    pairQuestions.map((question) => answers[question.id] ?? '').join('.')
+  return `${ids(first)}|${ids(second)}`
+}
+
+export function findPairAnswers(value: string | null) {
+  if (!value) return null
+  const [firstPart, secondPart] = value.split('|')
+  if (!firstPart || !secondPart) return null
+
+  const decode = (part: string) => {
+    const ids = part.split('.')
+    if (ids.length !== pairQuestions.length) return null
+    const answers: Record<string, string> = {}
+    for (let index = 0; index < pairQuestions.length; index += 1) {
+      const question = pairQuestions[index]
+      const option = question.options.find((item) => item.id === ids[index])
+      if (!option) return null
+      answers[question.id] = option.id
+    }
+    return answers
+  }
+
+  const first = decode(firstPart)
+  const second = decode(secondPart)
+  if (!first || !second) return null
+  return { first, second }
+}
+
+export function pairSharePath(first: Record<string, string>, second: Record<string, string>) {
+  return `/fun?pair=${encodeURIComponent(encodePairAnswers(first, second))}`
+}
+
 export const shawarmaQuestions: QuizQuestion[] = [
   {
     id: 'mood',
@@ -430,7 +1042,7 @@ export const shawarmaQuestions: QuizQuestion[] = [
   },
 ]
 
-function hashString(value: string) {
+export function hashString(value: string) {
   let hash = 0
   for (let index = 0; index < value.length; index += 1) {
     hash = (hash * 31 + value.charCodeAt(index)) >>> 0
@@ -470,6 +1082,7 @@ export function findBunResult(id: string | null) {
 export function findFunResult(feature: string | null, id: string | null) {
   if (feature === 'shawarma') return findShawarmaResult(id)
   if (feature === 'horoscope') return findBunResult(id)
+  if (feature === 'tarot') return findTarotCard(id)
   return null
 }
 

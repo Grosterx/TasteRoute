@@ -39,7 +39,7 @@ func (a *API) createRestaurantDish(w http.ResponseWriter, r *http.Request) {
 	}
 	created, err := restaurantpkg.CreateDish(r.Context(), a.db, claims.RestaurantID, body)
 	if errors.Is(err, restaurantpkg.ErrInvalid) {
-		writeError(w, http.StatusBadRequest, "укажите название и корректную цену")
+		writeError(w, http.StatusBadRequest, "укажите название, корректную цену и загадку для секретного блюда")
 		return
 	}
 	if err != nil {
@@ -65,7 +65,7 @@ func (a *API) updateRestaurantDish(w http.ResponseWriter, r *http.Request) {
 		chi.URLParam(r, "dishID"), body)
 	switch {
 	case errors.Is(err, restaurantpkg.ErrInvalid):
-		writeError(w, http.StatusBadRequest, "укажите название и корректную цену")
+		writeError(w, http.StatusBadRequest, "укажите название, корректную цену и загадку для секретного блюда")
 		return
 	case errors.Is(err, restaurantpkg.ErrNotFound):
 		writeError(w, http.StatusNotFound, "блюдо не найдено")

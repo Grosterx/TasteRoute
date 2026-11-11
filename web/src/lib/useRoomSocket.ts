@@ -4,7 +4,7 @@ import type { Match } from './types'
 
 type SocketMessage =
   | { type: 'participants'; count: number }
-  | { type: 'match'; dish_id: string; likes: number }
+  | { type: 'match'; dish_id: string; dish_name?: string; blind?: boolean; likes: number }
   | { type: 'error'; message: string }
 
 export function useRoomSocket(roomCode?: string, token?: string) {
@@ -38,7 +38,12 @@ export function useRoomSocket(roomCode?: string, token?: string) {
           if (message.type === 'participants') {
             setParticipants(message.count)
           } else if (message.type === 'match') {
-            const match = { dish_id: String(message.dish_id), likes: Number(message.likes) }
+            const match: Match = {
+              dish_id: String(message.dish_id),
+              likes: Number(message.likes),
+              dish_name: typeof message.dish_name === 'string' ? message.dish_name : undefined,
+              blind: Boolean(message.blind),
+            }
             setLastMatch(match)
             setMatches((previous) =>
               previous.some((item) => item.dish_id === match.dish_id)

@@ -2,6 +2,13 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Route, Sparkles, Users } from 'lucide-react'
 import { funFeatures } from '../lib/fun'
 import { FunFeatureCard } from '../components/FunFeatureCard'
+import { PairCompatibility } from '../components/PairCompatibility'
+import { TarotSection } from '../components/TarotSection'
+
+// таро и тест на двоих живут прямо на этой странице, поэтому карточки-ссылки для них не показываем
+const linkFeatures = funFeatures.filter(
+  (feature) => feature.id !== 'tarot' && feature.id !== 'pair',
+)
 
 export function FunHub() {
   return (
@@ -24,16 +31,20 @@ export function FunHub() {
           <span className="block text-saffron-300">потом иди есть</span>
         </h1>
         <p className="mt-4 max-w-2xl text-sm leading-relaxed text-cream-300/60 sm:text-base">
-          Две лёгкие забавы для разгона аппетита. Узнай свой гастро-характер и сразу преврати
+          Четыре лёгкие забавы для разгона аппетита. Узнай свой гастро-характер и сразу преврати
           результат в маршрут, который устроит всю компанию.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {funFeatures.map((feature) => (
+        {linkFeatures.map((feature) => (
           <FunFeatureCard key={feature.id} feature={feature} />
         ))}
       </div>
+
+      <TarotSection />
+
+      <PairCompatibility />
 
       <div className="surface grid gap-6 p-7 sm:grid-cols-[1fr_auto] sm:items-center sm:p-8">
         <div>

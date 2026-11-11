@@ -62,6 +62,8 @@ type Participant struct {
 type SwipeResult struct {
 	Recorded     bool   `json:"recorded"`
 	DishID       string `json:"dish_id"`
+	DishName     string `json:"dish_name,omitempty"`
+	DishBlind    bool   `json:"blind,omitempty"`
 	Likes        int64  `json:"likes"`
 	Matched      bool   `json:"matched"`
 	MatchCreated bool   `json:"match_created"`
@@ -215,21 +217,21 @@ func Swipe(ctx context.Context, db *pgxpool.Pool, rdb *redis.Client, roomID, roo
 		return SwipeResult{}, ErrInvalidSwipe
 	}
 
-	var dishExists bool
+	var dishName string
+	var dishBlind bool
 	err := db.QueryRow(ctx, `
-		SELECT EXISTS (
-			SELECT 1
-			FROM dishes d
-			JOIN restaurants r ON r.id = d.restaurant_id
-			JOIN rooms rm ON rm.id = $2
-			WHERE d.id = $1 AND d.active AND r.active
-			  AND (rm.restaurant_id IS NULL OR d.restaurant_id = rm.restaurant_id)
-		)`, dishID, roomID).Scan(&dishExists)
+		SELECT d.name, d.blind
+		FROM dishes d
+		JOIN restaurants r ON r.id = d.restaurant_id
+		JOIN rooms rm ON rm.id = $2
+		WHERE d.id = $1 AND d.active AND r.active
+		  AND (rm.restaurant_id IS NULL OR d.restaurant_id = rm.restaurant_id)
+	`, dishID, roomID).Scan(&dishName, &dishBlind)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return SwipeResult{}, ErrDishNotFound
+	}
 	if err != nil {
 		return SwipeResult{}, fmt.Errorf("check dish: %w", err)
-	}
-	if !dishExists {
-		return SwipeResult{}, ErrDishNotFound
 	}
 
 	inserted := true
@@ -256,7 +258,7 @@ func Swipe(ctx context.Context, db *pgxpool.Pool, rdb *redis.Client, roomID, roo
 		return SwipeResult{}, fmt.Errorf("insert swipe: %w", err)
 	}
 
-	result := SwipeResult{Recorded: inserted, DishID: dishID}
+	result := SwipeResult{Recorded: inserted, DishID: dishID, DishName: dishName, DishBlind: dishBlind}
 	if !liked {
 		return result, nil
 	}

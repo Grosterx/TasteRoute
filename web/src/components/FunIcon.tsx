@@ -2,17 +2,27 @@ import type { LucideIcon } from 'lucide-react'
 import {
   CakeSlice,
   Candy,
+  Citrus,
+  Coffee,
   Cookie,
   Croissant,
   Donut,
+  Drumstick,
+  Beef,
+  Fish,
   Flame,
   Heart,
+  IceCreamCone,
   Leaf,
   Moon,
+  Pizza,
+  Salad,
   Sandwich,
   Sparkles,
+  Soup,
   Users,
   Wheat,
+  Wine,
 } from 'lucide-react'
 import type { FunIcon as FunIconName } from '../lib/fun'
 
@@ -30,6 +40,16 @@ const icons: Record<FunIconName, LucideIcon> = {
   wheat: Wheat,
   donut: Donut,
   candy: Candy,
+  wine: Wine,
+  fish: Fish,
+  beef: Beef,
+  pizza: Pizza,
+  salad: Salad,
+  soup: Soup,
+  coffee: Coffee,
+  icecream: IceCreamCone,
+  drumstick: Drumstick,
+  citrus: Citrus,
 }
 
 type FunIconGlyphProps = {

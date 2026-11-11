@@ -189,8 +189,9 @@ export function Swipes() {
 
       <MatchOverlay
         open={Boolean(activeMatch)}
-        dishName={matchDish?.name}
+        dishName={activeMatch?.dish_name ?? matchDish?.name}
         likes={activeMatch?.likes ?? 0}
+        reveal={Boolean(activeMatch?.dish_name && matchDish?.blind)}
         onClose={() => setActiveMatch(null)}
       />
     </div>

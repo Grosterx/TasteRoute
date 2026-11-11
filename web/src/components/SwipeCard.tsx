@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
-import { Heart, MapPin, X } from 'lucide-react'
+import { EyeOff, Heart, MapPin, X } from 'lucide-react'
 import type { Dish } from '../lib/types'
 import { cuisineGradient, formatPrice, tagLabel } from '../lib/utils'
 
@@ -52,15 +52,28 @@ export function SwipeCard({ dish, onSwipe, disabled = false }: SwipeCardProps) {
         <div className={`relative h-[270px] bg-gradient-to-br ${cuisineGradient(dish.restaurant_cuisine)}`}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.28),transparent_40%)]" />
           <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-ink-900 via-ink-900/30 to-transparent" />
-          <div className="absolute left-5 top-5 rounded-full border border-white/20 bg-black/20 px-3 py-1 text-xs font-semibold text-white/90 backdrop-blur">
-            {dish.restaurant_cuisine}
+          <div className="absolute left-5 top-5 flex items-center gap-2">
+            <div className="rounded-full border border-white/20 bg-black/20 px-3 py-1 text-xs font-semibold text-white/90 backdrop-blur">
+              {dish.restaurant_cuisine}
+            </div>
+            {dish.blind ? (
+              <div className="flex items-center gap-1.5 rounded-full border border-saffron-200/40 bg-saffron-500/30 px-3 py-1 text-xs font-bold text-saffron-100 backdrop-blur">
+                <EyeOff size={12} />
+                Секрет
+              </div>
+            ) : null}
           </div>
+          {dish.blind ? (
+            <span className="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 font-display text-[130px] font-black leading-none text-white/10">
+              ?
+            </span>
+          ) : null}
           <div className="absolute bottom-5 left-5 right-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">
               {dish.restaurant_name}
             </p>
             <h2 className="mt-1 font-display text-4xl font-bold leading-tight text-white">
-              {dish.name}
+              {dish.blind ? 'Блюдо вслепую' : dish.name}
             </h2>
           </div>
         </div>
@@ -68,16 +81,23 @@ export function SwipeCard({ dish, onSwipe, disabled = false }: SwipeCardProps) {
         <div className="space-y-5 p-5 sm:p-6">
           <p className="min-h-10 text-sm leading-relaxed text-cream-200/75">{dish.description}</p>
 
-          <div className="flex flex-wrap gap-2">
-            {dish.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-cream-200/10 bg-cream-50/[0.04] px-2.5 py-1 text-[11px] font-medium text-cream-200/70"
-              >
-                {tagLabel(tag)}
-              </span>
-            ))}
-          </div>
+          {dish.blind ? (
+            <p className="flex items-start gap-2 rounded-2xl border border-saffron-400/20 bg-saffron-400/[0.06] px-3.5 py-2.5 text-xs leading-relaxed text-saffron-300/90">
+              <EyeOff size={14} className="mt-0.5 shrink-0" />
+              Название и фото откроются, когда это блюдо совпадёт с кем-то из компании
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {dish.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-cream-200/10 bg-cream-50/[0.04] px-2.5 py-1 text-[11px] font-medium text-cream-200/70"
+                >
+                  {tagLabel(tag)}
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-4 border-t border-cream-200/10 pt-4">
             <div className="flex min-w-0 items-center gap-2 text-xs text-cream-300/55">

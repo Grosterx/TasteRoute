@@ -1,15 +1,25 @@
+import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Heart, Sparkles } from 'lucide-react'
+import { EyeOff, Heart, Sparkles } from 'lucide-react'
 import { Button } from './ui/Button'
+import { Confetti } from './Confetti'
 
 type MatchOverlayProps = {
   open: boolean
   dishName?: string
   likes: number
+  reveal?: boolean
   onClose: () => void
 }
 
-export function MatchOverlay({ open, dishName, likes, onClose }: MatchOverlayProps) {
+export function MatchOverlay({ open, dishName, likes, reveal, onClose }: MatchOverlayProps) {
+  useEffect(() => {
+    if (!open) return
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate([30, 40, 30])
+    }
+  }, [open])
+
   return (
     <AnimatePresence>
       {open ? (
@@ -28,6 +38,7 @@ export function MatchOverlay({ open, dishName, likes, onClose }: MatchOverlayPro
             className="surface relative w-full max-w-sm overflow-hidden p-7 text-center"
             onClick={(event) => event.stopPropagation()}
           >
+            <Confetti active={open} />
             <div className="absolute -left-12 -top-12 h-40 w-40 rounded-full bg-saffron-400/15 blur-3xl" />
             <div className="absolute -bottom-16 -right-12 h-44 w-44 rounded-full bg-basil-400/15 blur-3xl" />
             <div className="relative">
@@ -38,6 +49,12 @@ export function MatchOverlay({ open, dishName, likes, onClose }: MatchOverlayPro
               <h2 className="mt-2 font-display text-3xl font-bold text-cream-50">
                 {dishName ?? 'Это блюдо хотят все'}
               </h2>
+              {reveal ? (
+                <p className="mx-auto mt-3 inline-flex items-center gap-1.5 rounded-full border border-saffron-400/30 bg-saffron-400/10 px-3.5 py-1.5 text-xs font-semibold text-saffron-300">
+                  <EyeOff size={13} />
+                  Секретное блюдо раскрыто
+                </p>
+              ) : null}
               <p className="mt-3 text-sm text-cream-300/65">
                 {likes} {likes === 1 ? 'лайк' : likes < 5 ? 'лайка' : 'лайков'} в комнате. Добавим
                 точку в маршрут?

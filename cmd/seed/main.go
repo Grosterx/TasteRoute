@@ -34,6 +34,8 @@ type dishSeed struct {
 	Category     string   `json:"category"`
 	SortOrder    int      `json:"sort_order"`
 	Active       bool     `json:"active"`
+	Blind        bool     `json:"blind"`
+	BlindRiddle  string   `json:"blind_riddle"`
 }
 
 func main() {
@@ -94,8 +96,8 @@ func main() {
 			d.Category = d.Tags[0]
 		}
 		_, err := db.Exec(ctx, `
-			INSERT INTO dishes (id, restaurant_id, name, description, price, tags, image_url, category, sort_order, active)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			INSERT INTO dishes (id, restaurant_id, name, description, price, tags, image_url, category, sort_order, active, blind, blind_riddle)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 			ON CONFLICT (id) DO UPDATE SET
 				restaurant_id = EXCLUDED.restaurant_id,
 				name = EXCLUDED.name,
@@ -105,9 +107,11 @@ func main() {
 				image_url = EXCLUDED.image_url,
 				category = EXCLUDED.category,
 				sort_order = EXCLUDED.sort_order,
-				active = EXCLUDED.active`,
+				active = EXCLUDED.active,
+				blind = EXCLUDED.blind,
+				blind_riddle = EXCLUDED.blind_riddle`,
 			d.ID, d.RestaurantID, d.Name, d.Description, d.Price, d.Tags, d.ImageURL,
-			d.Category, d.SortOrder, d.Active,
+			d.Category, d.SortOrder, d.Active, d.Blind, d.BlindRiddle,
 		)
 		if err != nil {
 			fail("upsert dish %s: %v", d.Name, err)

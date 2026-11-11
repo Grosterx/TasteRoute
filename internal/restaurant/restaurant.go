@@ -204,6 +204,10 @@ func GetPublic(ctx context.Context, db *pgxpool.Pool, slug string) (PublicRestau
 	if err != nil {
 		return PublicRestaurant{}, err
 	}
+	for i := range dishes {
+		// Секретные блюда на публичной странице показываем загадкой, без названия и фото.
+		dishes[i] = dishes[i].MaskedForGuests()
+	}
 	return PublicRestaurant{Restaurant: found, Dishes: dishes}, nil
 }
 

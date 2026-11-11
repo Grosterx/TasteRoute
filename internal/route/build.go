@@ -3,6 +3,7 @@ package route
 type DishRef struct {
 	DishID string `json:"dish_id"`
 	Name   string `json:"name"`
+	Blind  bool   `json:"blind,omitempty"`
 }
 
 type Stop struct {

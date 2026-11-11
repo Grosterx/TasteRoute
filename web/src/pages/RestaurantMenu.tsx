@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Pencil, Plus, Trash2, UtensilsCrossed } from 'lucide-react'
+import { Loader2, Pencil, Plus, Trash2, UtensilsCrossed, VenetianMask } from 'lucide-react'
 import { api } from '../lib/api'
 import { getRestaurantSession } from '../lib/restaurantSession'
 import type { MenuDish } from '../lib/types'
@@ -19,6 +19,8 @@ type MenuForm = {
   category: string
   sort_order: string
   active: boolean
+  blind: boolean
+  blind_riddle: string
 }
 
 const emptyForm: MenuForm = {
@@ -30,6 +32,8 @@ const emptyForm: MenuForm = {
   category: '',
   sort_order: '0',
   active: true,
+  blind: false,
+  blind_riddle: '',
 }
 
 export function RestaurantMenu() {
@@ -56,6 +60,8 @@ export function RestaurantMenu() {
       category: string
       sort_order: number
       active: boolean
+      blind: boolean
+      blind_riddle: string
     }) =>
       editing
         ? api.updateRestaurantDish(session!.token, editing.dish_id, payload)
@@ -91,6 +97,8 @@ export function RestaurantMenu() {
       category: dish.category,
       sort_order: String(dish.sort_order),
       active: dish.active,
+      blind: dish.blind,
+      blind_riddle: dish.blind_riddle,
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -109,6 +117,10 @@ export function RestaurantMenu() {
       setMessage('Укажите название и корректную цену')
       return
     }
+    if (form.blind && !form.blind_riddle.trim()) {
+      setMessage('Для секретного блюда нужна загадка — гости увидят её вместо названия')
+      return
+    }
     saveMutation.mutate({
       name: form.name.trim(),
       description: form.description.trim(),
@@ -121,6 +133,8 @@ export function RestaurantMenu() {
       category: form.category.trim(),
       sort_order: Number(form.sort_order) || 0,
       active: form.active,
+      blind: form.blind,
+      blind_riddle: form.blind_riddle.trim(),
     })
   }
 
@@ -239,6 +253,38 @@ export function RestaurantMenu() {
             />
             Показывать блюдо гостям
           </label>
+          <label className="flex items-start gap-2.5 text-sm text-cream-200/75 sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={form.blind}
+              onChange={(event) => setForm({ ...form, blind: event.target.checked })}
+              className="mt-0.5 h-4 w-4 rounded border-cream-200/20 bg-ink-900 accent-saffron-400"
+            />
+            <span>
+              <span className="flex items-center gap-1.5 font-semibold text-cream-100">
+                <VenetianMask size={15} className="text-saffron-300" />
+                Блюдо вслепую
+              </span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-cream-300/50">
+                Гости увидят загадку вместо названия и фото. Настоящее имя откроется, когда блюдо
+                совпадёт у компании.
+              </span>
+            </span>
+          </label>
+          {form.blind ? (
+            <div className="sm:col-span-2">
+              <label htmlFor="dish-riddle" className="field-label">
+                Загадка для гостей
+              </label>
+              <Textarea
+                id="dish-riddle"
+                value={form.blind_riddle}
+                onChange={(event) => setForm({ ...form, blind_riddle: event.target.value })}
+                maxLength={200}
+                placeholder="Например: хрустящее снаружи, а внутри — горячий сливочный вулкан"
+              />
+            </div>
+          ) : null}
 
           {saveMutation.error ? (
             <p className="rounded-2xl border border-tomato-400/20 bg-tomato-500/10 px-4 py-3 text-sm text-tomato-400 sm:col-span-2">
@@ -288,6 +334,12 @@ export function RestaurantMenu() {
                   <h2 className="break-words font-display text-xl font-bold text-cream-50">
                     {dish.name}
                   </h2>
+                  {dish.blind ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-saffron-400/25 bg-saffron-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-saffron-300">
+                      <VenetianMask size={10} />
+                      вслепую
+                    </span>
+                  ) : null}
                   {!dish.active ? (
                     <span className="rounded-full bg-cream-50/[0.06] px-2 py-0.5 text-[10px] uppercase tracking-wider text-cream-300/50">
                       скрыто
@@ -297,6 +349,11 @@ export function RestaurantMenu() {
                     <span className="text-[11px] text-cream-300/45">{dish.category}</span>
                   ) : null}
                 </div>
+                {dish.blind && dish.blind_riddle ? (
+                  <p className="mt-1 line-clamp-2 text-sm italic text-saffron-300/60">
+                    Загадка: {dish.blind_riddle}
+                  </p>
+                ) : null}
                 {dish.description ? (
                   <p className="mt-1 line-clamp-2 text-sm text-cream-300/55">{dish.description}</p>
                 ) : null}

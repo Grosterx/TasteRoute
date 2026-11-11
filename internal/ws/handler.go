@@ -130,9 +130,11 @@ func (h *Handler) readLoop(client *Client, found roompkg.Room, participantID str
 		}
 		if result.MatchCreated {
 			payload, err := json.Marshal(map[string]any{
-				"type":    "match",
-				"dish_id": result.DishID,
-				"likes":   result.Likes,
+				"type":      "match",
+				"dish_id":   result.DishID,
+				"dish_name": result.DishName,
+				"blind":     result.DishBlind,
+				"likes":     result.Likes,
 			})
 			if err == nil {
 				h.hub.Broadcast(found.Code, payload)

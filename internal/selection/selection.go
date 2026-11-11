@@ -15,12 +15,13 @@ type Dish struct {
 	Tags        []string `json:"tags"`
 	ImageURL    string   `json:"image_url"`
 	Likes       int64    `json:"likes"`
+	Blind       bool     `json:"blind"`
 }
 
 func MatchedDishes(ctx context.Context, db *pgxpool.Pool, roomID, restaurantID string) ([]Dish, error) {
 	rows, err := db.Query(ctx, `
 		SELECT d.id, d.name, COALESCE(d.description, ''), d.price, d.tags,
-		       COALESCE(d.image_url, ''), m.likes
+		       COALESCE(d.image_url, ''), m.likes, d.blind
 		FROM matches m
 		JOIN dishes d ON d.id = m.dish_id
 		WHERE m.room_id = $1 AND d.restaurant_id = $2 AND d.active
@@ -34,7 +35,7 @@ func MatchedDishes(ctx context.Context, db *pgxpool.Pool, roomID, restaurantID s
 	for rows.Next() {
 		var d Dish
 		if err := rows.Scan(
-			&d.DishID, &d.Name, &d.Description, &d.Price, &d.Tags, &d.ImageURL, &d.Likes,
+			&d.DishID, &d.Name, &d.Description, &d.Price, &d.Tags, &d.ImageURL, &d.Likes, &d.Blind,
 		); err != nil {
 			return nil, fmt.Errorf("scan matched dish: %w", err)
 		}

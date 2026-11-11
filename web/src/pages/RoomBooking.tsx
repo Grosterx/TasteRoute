@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   CalendarClock,
   CheckCircle2,
+  EyeOff,
   Heart,
   Loader2,
   MapPin,
@@ -16,6 +17,7 @@ import { ApiError, api } from '../lib/api'
 import { getSession } from '../lib/session'
 import { bookingStatusLabel } from '../lib/restaurant'
 import { formatDate, formatPrice } from '../lib/utils'
+import { MatchRoulette } from '../components/MatchRoulette'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Textarea } from '../components/ui/Textarea'
@@ -206,7 +208,15 @@ export function RoomBooking() {
                     className="flex items-center justify-between gap-3 rounded-2xl border border-cream-200/[0.07] bg-cream-50/[0.025] px-4 py-3"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-cream-100">{dish.name}</p>
+                      <p className="flex items-center gap-2 truncate text-sm font-semibold text-cream-100">
+                        <span className="truncate">{dish.name}</span>
+                        {dish.blind ? (
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-saffron-400/25 bg-saffron-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-saffron-300">
+                            <EyeOff size={10} />
+                            вслепую
+                          </span>
+                        ) : null}
+                      </p>
                       {dish.description ? (
                         <p className="mt-0.5 line-clamp-1 text-xs text-cream-300/45">
                           {dish.description}
@@ -221,6 +231,11 @@ export function RoomBooking() {
                 ))}
               </div>
             )}
+            {dishes.length >= 2 ? (
+              <div className="mt-6">
+                <MatchRoulette dishes={dishes} />
+              </div>
+            ) : null}
           </div>
 
           <div>

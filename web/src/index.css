@@ -141,6 +141,43 @@
     cursor: pointer;
   }
 
+  .tr-map-marker--yandex {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tr-map-marker--yandex .tr-map-bubble {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    display: none;
+    width: max-content;
+    max-width: 220px;
+    transform: translateX(-50%);
+    border-radius: 14px;
+    background: #f8efdf;
+    padding: 10px 12px;
+    box-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.9);
+    z-index: 20;
+  }
+
+  .tr-map-marker--yandex.is-open .tr-map-bubble {
+    display: block;
+  }
+
+  .tr-map-marker--yandex .tr-map-bubble::after {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    background: #f8efdf;
+    content: '';
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
   .tr-map-marker__dot {
     display: block;
     width: 18px;

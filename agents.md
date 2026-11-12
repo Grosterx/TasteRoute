@@ -39,7 +39,7 @@ B2B-сценарий — основной:
 - Для комнаты ресторана используется `/rooms/{code}/selection` и `/bookings`, маршрут не строится.
 - «Блюдо вслепую»: `dishes.blind` + `dishes.blind_riddle` (до 200 символов, обязательна при флаге). Каталог комнаты и публичная страница маскируют название, фото и теги загадкой; реальное имя приходит в WS `match` (`dish_name`, `blind`) и раскрывается в selection и маршруте.
 - Городской маршрут строится только при мэтчах в **двух разных ресторанах**.
-- Маршрут на MapLibre GL JS + OpenStreetMap: нумерованные маркеры, блюда в попапе, линия между остановками; при ошибке тайлов показывается список точек.
+- Маршрут на Яндекс.Картах (при `VITE_YANDEX_MAPS_API_KEY`) или MapLibre GL JS + OpenStreetMap: нумерованные маркеры, блюда в попапе, линия между остановками; при ошибке тайлов показывается список точек.
 - Экран маршрута — 4 шага: блюда → карта → «что едим» (выбор или рулетка) → одна бронь на всю компанию.
 - Прогресс к маршруту и кнопка «Маршрут» — в закреплённой нижней панели свайпов; кнопка активна при мэтчах в двух ресторанах.
 - Порог мэтча: `min(2, ceil(participants / 2))`.
@@ -58,7 +58,7 @@ B2B-сценарий — основной:
 - Backend: Go 1.23, chi, pgx, goose, JWT, bcrypt, gorilla/websocket, go-redis.
 - DB: PostgreSQL 17 в Docker на VPS.
 - Cache: Redis 8 в Docker на VPS.
-- Frontend: Vite, React 18, TypeScript, Tailwind, React Query, framer-motion, qrcode, MapLibre GL JS, PWA.
+- Frontend: Vite, React 18, TypeScript, Tailwind, React Query, framer-motion, qrcode, Яндекс.Карты / MapLibre GL JS, PWA.
 - Runtime: Docker Compose.
 - Edge: Caddy + Let's Encrypt + бесплатный `nip.io`.
 - Prod: VPS Freetato (Debian 13), `https://194-226-54-219.nip.io`.
@@ -143,6 +143,7 @@ WS-сообщения:
 Frontend:
 
 - `VITE_API_BASE_URL` — по умолчанию `/tasteroute/api`
+- `VITE_YANDEX_MAPS_API_KEY` — ключ Яндекс.Карт JS API; пусто — карта на MapLibre + OpenStreetMap
 
 ## Команды
 

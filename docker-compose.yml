@@ -93,6 +93,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: /tasteroute/api
+        VITE_YANDEX_MAPS_API_KEY: "${VITE_YANDEX_MAPS_API_KEY:-}"
     restart: unless-stopped
     ports:
       - "127.0.0.1:5173:80"

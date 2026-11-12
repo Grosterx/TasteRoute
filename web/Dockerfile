@@ -6,7 +6,9 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
 ARG VITE_API_BASE_URL=/tasteroute/api
+ARG VITE_YANDEX_MAPS_API_KEY=
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_YANDEX_MAPS_API_KEY=$VITE_YANDEX_MAPS_API_KEY
 RUN pnpm build
 
 FROM nginx:1.27-alpine

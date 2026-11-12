@@ -81,38 +81,64 @@
     isolation: isolate;
   }
 
-  .tasteroute-map .leaflet-container {
+  .tasteroute-map .maplibregl-map {
     background: #14110e;
     font-family: inherit;
   }
 
-  .tasteroute-map .leaflet-tile-pane {
+  .tasteroute-map .maplibregl-canvas {
     filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.92) saturate(0.65);
   }
 
-  .tasteroute-map .leaflet-control-attribution {
+  .tasteroute-map .maplibregl-ctrl-attrib {
     background: rgba(13, 11, 9, 0.78) !important;
     color: rgba(214, 193, 163, 0.65) !important;
     font-size: 9px;
   }
 
-  .tasteroute-map .leaflet-control-attribution a {
+  .tasteroute-map .maplibregl-ctrl-attrib a {
     color: rgba(255, 211, 122, 0.8) !important;
   }
 
-  .tasteroute-map .leaflet-control-zoom a {
-    border-color: rgba(234, 219, 196, 0.12) !important;
-    background: #14110e !important;
-    color: #f8efdf !important;
+  .tasteroute-map .maplibregl-ctrl-attrib-button {
+    filter: invert(1) brightness(1.15);
   }
 
-  .tasteroute-map .leaflet-control-zoom a:hover {
+  .tasteroute-map .maplibregl-ctrl-group {
+    border: 1px solid rgba(234, 219, 196, 0.12);
+    background: #14110e !important;
+    box-shadow: none;
+  }
+
+  .tasteroute-map .maplibregl-ctrl-group button {
+    background: #14110e !important;
+  }
+
+  .tasteroute-map .maplibregl-ctrl-group button:hover {
     background: #211c17 !important;
+  }
+
+  .tasteroute-map .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+    filter: invert(1) hue-rotate(180deg) brightness(1.1);
+  }
+
+  .tasteroute-map .maplibregl-popup-content {
+    border-radius: 14px;
+    background: #f8efdf;
+    padding: 10px 12px;
+    box-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.9);
+    font-family: inherit;
+  }
+
+  .tasteroute-map .maplibregl-popup-tip {
+    border-top-color: #f8efdf;
+    border-bottom-color: #f8efdf;
   }
 
   .tr-map-marker {
     border: 0;
     background: transparent;
+    cursor: pointer;
   }
 
   .tr-map-marker__dot {

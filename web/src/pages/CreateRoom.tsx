@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Loader2, MapPin, Sparkles } from 'lucide-react'
+import { ArrowLeft, Loader2, Sparkles } from 'lucide-react'
 import { api } from '../lib/api'
 import { findFunResult } from '../lib/fun'
 import { saveSession } from '../lib/session'
+import { useUserCity } from '../lib/useUserCity'
+import { CityPicker } from '../components/CityPicker'
 import { FunIconGlyph } from '../components/FunIcon'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -12,6 +14,7 @@ export function CreateRoom() {
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { city } = useUserCity()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const vibe = findFunResult(searchParams.get('fun'), searchParams.get('result'))
@@ -22,10 +25,14 @@ export function CreateRoom() {
       setError('Как вас зовут?')
       return
     }
+    if (!city) {
+      setError('Выберите город, чтобы собрать комнату')
+      return
+    }
     setBusy(true)
     setError(null)
     try {
-      const room = await api.createRoom('Тольятти')
+      const room = await api.createRoom(city)
       const joined = await api.joinRoom(room.code, name.trim())
       saveSession({
         participantId: joined.participant_id,
@@ -55,22 +62,21 @@ export function CreateRoom() {
           <div className="absolute right-6 top-6 text-saffron-400/20">
             <Sparkles size={54} />
           </div>
-          <p className="eyebrow">Новая комната</p>
+          <p className="eyebrow">Новая городская комната</p>
           <h1 className="mt-3 font-display text-4xl font-bold leading-tight text-cream-50">
             Кто идёт
             <br />
             за вкусом?
           </h1>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-cream-300/60">
-            Вы станете организатором. После создания останется отправить друзьям ссылку.
+            Комната из всех ресторанов города. Вы станете организатором — останется отправить
+            друзьям ссылку.
           </p>
         </div>
 
         <form onSubmit={submit} className="space-y-6 p-7 sm:p-9">
-          <div className="flex items-center gap-2 rounded-2xl border border-cream-200/10 bg-ink-850 px-4 py-3 text-sm text-cream-200/70">
-            <MapPin size={17} className="text-saffron-400" />
-            Тольятти
-            <span className="ml-auto text-xs text-cream-300/40">город MVP</span>
+          <div className="rounded-2xl border border-cream-200/10 bg-ink-850 px-4 py-3">
+            <CityPicker showHint />
           </div>
 
           {vibe ? (
@@ -112,7 +118,7 @@ export function CreateRoom() {
             </p>
           ) : null}
 
-          <Button type="submit" size="lg" className="w-full" disabled={busy}>
+          <Button type="submit" size="lg" className="w-full" disabled={busy || !city}>
             {busy ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
             {busy ? 'Создаём комнату…' : 'Создать комнату'}
           </Button>

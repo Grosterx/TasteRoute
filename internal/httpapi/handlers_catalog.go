@@ -33,7 +33,7 @@ func (a *API) catalog(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "не удалось загрузить комнату")
 		return
 	}
-	dishes, err := catalog.List(r.Context(), a.db, found.ID)
+	dishes, err := catalog.List(r.Context(), a.db, found.ID, catalog.RoomDeckSize)
 	if err != nil {
 		slog.Error("catalog list", "error", err)
 		writeError(w, http.StatusInternalServerError, "не удалось загрузить каталог")

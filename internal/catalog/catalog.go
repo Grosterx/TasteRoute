@@ -25,6 +25,17 @@ type Dish struct {
 // blindDishName — как секретное блюдо выглядит для гостей до мэтча.
 const blindDishName = "Блюдо вслепую"
 
+// RoomDeckSize — сколько блюд получает одна комната. Колода детерминирована
+// room_id, поэтому все участники видят одни и те же блюда в одном порядке.
+const RoomDeckSize = 30
+
+func normalizeLimit(limit int) int {
+	if limit <= 0 || limit > 200 {
+		return RoomDeckSize
+	}
+	return limit
+}
+
 // MaskBlind прячет название, фото и теги секретного блюда: вместо них гости видят загадку.
 func MaskBlind(dish Dish) Dish {
 	if !dish.Blind {
@@ -42,17 +53,30 @@ func MaskBlind(dish Dish) Dish {
 	return masked
 }
 
-func List(ctx context.Context, db *pgxpool.Pool, roomID string) ([]Dish, error) {
+func List(ctx context.Context, db *pgxpool.Pool, roomID string, limit int) ([]Dish, error) {
+	limit = normalizeLimit(limit)
 	rows, err := db.Query(ctx, `
-		SELECT d.id, d.name, COALESCE(d.description, ''), d.price, d.tags, COALESCE(d.image_url, ''),
-		       d.blind, COALESCE(d.blind_riddle, ''),
-		       r.id, r.name, r.address, r.cuisine
-		FROM dishes d
-		JOIN restaurants r ON r.id = d.restaurant_id
-		JOIN rooms rm ON rm.id = $1
-		WHERE d.active AND r.active
-		  AND (rm.restaurant_id IS NULL OR d.restaurant_id = rm.restaurant_id)
-		ORDER BY r.name, d.category, d.sort_order, d.name`, roomID)
+		WITH eligible AS (
+			SELECT d.id, d.name, COALESCE(d.description, '') AS description, d.price, d.tags,
+			       COALESCE(d.image_url, '') AS image_url,
+			       d.blind, COALESCE(d.blind_riddle, '') AS blind_riddle,
+			       r.id AS restaurant_id, r.name AS restaurant_name, r.address, r.cuisine,
+			       row_number() OVER (
+			           PARTITION BY d.restaurant_id
+			           ORDER BY md5(rm.id::text || d.id::text)
+			       ) AS deck_round,
+			       md5(rm.id::text || d.id::text) AS deck_pick
+			FROM dishes d
+			JOIN restaurants r ON r.id = d.restaurant_id
+			JOIN rooms rm ON rm.id = $1
+			WHERE d.active AND r.active
+			  AND (rm.restaurant_id IS NULL OR d.restaurant_id = rm.restaurant_id)
+		)
+		SELECT id, name, description, price, tags, image_url, blind, blind_riddle,
+		       restaurant_id, restaurant_name, address, cuisine
+		FROM eligible
+		ORDER BY deck_round, deck_pick
+		LIMIT $2`, roomID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list catalog: %w", err)
 	}

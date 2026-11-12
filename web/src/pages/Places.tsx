@@ -1,43 +1,84 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, Loader2, MapPin, Store, Utensils } from 'lucide-react'
+import { ArrowRight, List, Loader2, Map as MapIcon, MapPin, Utensils } from 'lucide-react'
 import { api } from '../lib/api'
 import { cuisineGradient } from '../lib/utils'
+import { useUserCity } from '../lib/useUserCity'
+import { CityPicker } from '../components/CityPicker'
+import { RouteMap } from '../components/RouteMap'
+
+type ViewMode = 'list' | 'map'
 
 export function Places() {
+  const { city } = useUserCity()
+  const navigate = useNavigate()
+  const [view, setView] = useState<ViewMode>('map')
   const restaurantsQuery = useQuery({
-    queryKey: ['public-restaurants', 'Тольятти'],
-    queryFn: () => api.publicRestaurants('Тольятти'),
+    queryKey: ['public-restaurants', city],
+    queryFn: () => api.publicRestaurants(city),
+    enabled: Boolean(city),
     retry: false,
   })
+  const restaurants = restaurantsQuery.data ?? []
+  const mapPoints = restaurants.map((restaurant) => ({
+    id: restaurant.id,
+    name: restaurant.name,
+    address: restaurant.address || restaurant.city,
+    lat: restaurant.lat,
+    lon: restaurant.lon,
+    href: `/places/${restaurant.slug}`,
+  }))
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="eyebrow">Рестораны рядом</p>
+          <p className="eyebrow">Рестораны города</p>
           <h1 className="mt-3 font-display text-4xl font-bold leading-tight text-cream-50 sm:text-5xl">
-            Выберите место,
-            <span className="block text-saffron-300">а компания выберет блюда</span>
+            Меню конкретного места
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-cream-300/60">
-            Откройте меню ресторана, создайте комнату и отправьте ссылку друзьям. Совпавшие блюда
-            сразу превращаются в заявку на бронь.
+            Выберите ресторан, откройте меню и создайте комнату. Друзья подключатся по ссылке, а
+            совпавшие блюда сразу превратятся в бронь.
           </p>
         </div>
-        <Link
-          to="/for-restaurants"
-          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl border border-cream-200/15 bg-cream-50/[0.04] px-5 text-sm font-semibold text-cream-100 transition hover:border-saffron-400/40"
-        >
-          <Store size={16} />
-          Подключить ресторан
-        </Link>
       </div>
 
-      {restaurantsQuery.isLoading ? (
+      <div className="surface flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <CityPicker />
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={() => setView('list')}
+            className={
+              view === 'list'
+                ? 'inline-flex items-center gap-1.5 rounded-xl bg-saffron-400 px-3 py-2 text-xs font-bold text-ink-950'
+                : 'inline-flex items-center gap-1.5 rounded-xl border border-cream-200/12 px-3 py-2 text-xs font-semibold text-cream-200/75 transition hover:bg-cream-50/[0.06]'
+            }
+          >
+            <List size={14} />
+            Списком
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('map')}
+            className={
+              view === 'map'
+                ? 'inline-flex items-center gap-1.5 rounded-xl bg-saffron-400 px-3 py-2 text-xs font-bold text-ink-950'
+                : 'inline-flex items-center gap-1.5 rounded-xl border border-cream-200/12 px-3 py-2 text-xs font-semibold text-cream-200/75 transition hover:bg-cream-50/[0.06]'
+            }
+          >
+            <MapIcon size={14} />
+            На карте
+          </button>
+        </div>
+      </div>
+
+      {restaurantsQuery.isLoading || !city ? (
         <div className="flex min-h-[30vh] items-center justify-center gap-3 text-sm text-cream-300/60">
           <Loader2 size={18} className="animate-spin text-saffron-400" />
-          Загружаем рестораны…
+          {city ? 'Загружаем рестораны…' : 'Определяем город…'}
         </div>
       ) : restaurantsQuery.error ? (
         <div className="surface mx-auto max-w-xl p-7 text-center">
@@ -46,9 +87,36 @@ export function Places() {
             {restaurantsQuery.error instanceof Error ? restaurantsQuery.error.message : 'Попробуйте ещё раз'}
           </p>
         </div>
+      ) : restaurants.length === 0 ? (
+        <div className="surface mx-auto max-w-xl p-7 text-center">
+          <h2 className="font-display text-2xl font-bold text-cream-50">В этом городе пока нет ресторанов</h2>
+          <p className="mt-2 text-sm text-cream-300/60">
+            Выберите другой город в переключателе выше или соберите комнату из всех ресторанов.
+          </p>
+          <Link
+            to="/create"
+            className="mt-6 inline-flex h-11 items-center justify-center rounded-2xl bg-saffron-400 px-5 text-sm font-bold text-ink-950"
+          >
+            Создать комнату
+          </Link>
+        </div>
+      ) : view === 'map' ? (
+        <div className="surface overflow-hidden p-4 sm:p-5">
+          <RouteMap
+            points={mapPoints}
+            numbered={false}
+            onSelect={(id) => {
+              const restaurant = restaurants.find((item) => item.id === id)
+              if (restaurant) navigate(`/places/${restaurant.slug}`)
+            }}
+          />
+          <p className="mt-3 text-xs text-cream-300/40">
+            Нажмите на точку, чтобы открыть меню ресторана.
+          </p>
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(restaurantsQuery.data ?? []).map((restaurant) => (
+          {restaurants.map((restaurant) => (
             <Link
               key={restaurant.id}
               to={`/places/${restaurant.slug}`}

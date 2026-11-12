@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, CalendarCheck, CheckCircle2, Heart, Loader2, Route, WifiOff } from 'lucide-react'
+import {
+  ArrowLeft,
+  CalendarCheck,
+  CheckCircle2,
+  Heart,
+  Loader2,
+  Route,
+  Users,
+  WifiOff,
+} from 'lucide-react'
 import { api } from '../lib/api'
 import { getSession } from '../lib/session'
 import { useRoomSocket } from '../lib/useRoomSocket'
+import { useRouteProgress } from '../lib/useRouteProgress'
+import { cn } from '../lib/utils'
 import type { Match } from '../lib/types'
 import { MatchOverlay } from '../components/MatchOverlay'
 import { RoomChrome } from '../components/RoomChrome'
@@ -36,6 +47,12 @@ export function Swipes() {
   const matchDish = activeMatch ? catalog.find((dish) => dish.dish_id === activeMatch.dish_id) : null
   const participants = socket.participants || roomQuery.data?.participants_count || 1
   const restaurantMode = roomQuery.data?.mode === 'restaurant'
+  const progress = useRouteProgress(socket.matches, catalog, {
+    likes: roomQuery.data?.matches_count,
+    restaurants: roomQuery.data?.matched_restaurants,
+  })
+  const destination = `/room/${roomCode}/${restaurantMode ? 'booking' : 'route'}`
+  const canOpenRoute = restaurantMode || progress.ready
 
   useEffect(() => {
     if (socket.lastMatch) setActiveMatch(socket.lastMatch)
@@ -107,10 +124,10 @@ export function Swipes() {
     )
   }
 
-  const progress = Math.round((Math.min(index, catalog.length) / catalog.length) * 100)
+  const catalogProgress = Math.round((Math.min(index, catalog.length) / catalog.length) * 100)
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
+    <div className="mx-auto max-w-3xl space-y-5 pb-28">
       <div className="flex items-center justify-between gap-3">
         <Link
           to={`/room/${roomCode}`}
@@ -119,13 +136,10 @@ export function Swipes() {
           <ArrowLeft size={16} />
           В комнату
         </Link>
-        <Link
-          to={`/room/${roomCode}/${restaurantMode ? 'booking' : 'route'}`}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-saffron-300 transition hover:text-saffron-400"
-        >
-          {restaurantMode ? <CalendarCheck size={16} /> : <Route size={16} />}
-          {restaurantMode ? 'Бронь' : 'Маршрут'}
-        </Link>
+        <span className="flex items-center gap-1.5 text-xs text-cream-300/45">
+          <Heart size={13} className="text-tomato-400" />
+          {socket.matches.length} совпадений
+        </span>
       </div>
 
       <RoomChrome code={roomCode} participants={participants} connected={socket.connected} />
@@ -140,15 +154,12 @@ export function Swipes() {
         <span>
           {Math.min(index, catalog.length)} / {catalog.length} блюд
         </span>
-        <span className="flex items-center gap-1.5">
-          <Heart size={13} className="text-tomato-400" />
-          {socket.matches.length} совпадений
-        </span>
+        <span>{restaurantMode ? 'меню ресторана' : `${progress.restaurantCount} из ${progress.minRestaurants} ресторанов`}</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-cream-50/[0.06]">
         <div
           className="h-full rounded-full bg-saffron-400 transition-all duration-300"
-          style={{ width: `${progress}%` }}
+          style={{ width: `${catalogProgress}%` }}
         />
       </div>
 
@@ -162,19 +173,30 @@ export function Swipes() {
             </div>
             <h1 className="mt-5 font-display text-3xl font-bold text-cream-50">Колода пройдена</h1>
             <p className="mt-2 text-sm leading-relaxed text-cream-300/60">
-              Вы посмотрели все блюда.{' '}
               {restaurantMode
-                ? 'Теперь можно оставить бронь с общими блюдами.'
-                : 'Если совпадений уже достаточно, собирайте маршрут.'}
+                ? 'Вы посмотрели всё меню. Теперь можно оставить бронь с общими блюдами.'
+                : progress.ready
+                  ? 'Совпадений в разных ресторанах хватает — собирайте маршрут.'
+                  : 'Пока мало совпадений в разных ресторанах. Позовите друзей или пройдите колоду ещё раз.'}
             </p>
             <div className="mt-6 flex flex-col gap-3">
-              <Link
-                to={`/room/${roomCode}/${restaurantMode ? 'booking' : 'route'}`}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-saffron-400 px-6 text-sm font-bold text-ink-950 transition hover:bg-saffron-300"
-              >
-                {restaurantMode ? <CalendarCheck size={17} /> : <Route size={17} />}
-                {restaurantMode ? 'Оставить бронь' : 'Собрать маршрут'}
-              </Link>
+              {canOpenRoute ? (
+                <Link
+                  to={destination}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-saffron-400 px-6 text-sm font-bold text-ink-950 transition hover:bg-saffron-300"
+                >
+                  {restaurantMode ? <CalendarCheck size={17} /> : <Route size={17} />}
+                  {restaurantMode ? 'К брони' : 'Собрать маршрут'}
+                </Link>
+              ) : (
+                <Link
+                  to={`/room/${roomCode}`}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-saffron-400 px-6 text-sm font-bold text-ink-950 transition hover:bg-saffron-300"
+                >
+                  <Users size={17} />
+                  Позвать друзей
+                </Link>
+              )}
               <Button variant="secondary" onClick={restart}>
                 Пройти заново
               </Button>
@@ -187,11 +209,60 @@ export function Swipes() {
         Вправо — «хочу», влево — «мимо». Свайпы видны всей комнате.
       </p>
 
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-cream-200/10 bg-ink-950/90 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="min-w-0">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-cream-300/60">
+              <span className="inline-flex items-center gap-1.5">
+                <Heart size={13} className="text-tomato-400" />
+                {progress.likedCount} совпадений
+              </span>
+              <span className="text-cream-300/25">·</span>
+              <span>
+                {restaurantMode
+                  ? 'выбор блюд'
+                  : `${progress.restaurantCount} из ${progress.minRestaurants} ресторанов`}
+              </span>
+            </p>
+            {!restaurantMode ? (
+              <div className="mt-1.5 h-1.5 w-36 overflow-hidden rounded-full bg-cream-50/[0.08]">
+                <div
+                  className="h-full rounded-full bg-saffron-400 transition-all duration-300"
+                  style={{
+                    width: `${Math.min(100, (progress.restaurantCount / progress.minRestaurants) * 100)}%`,
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
+          <Link
+            to={destination}
+            aria-disabled={!canOpenRoute}
+            tabIndex={canOpenRoute ? undefined : -1}
+            onClick={(event) => {
+              if (!canOpenRoute) event.preventDefault()
+            }}
+            className={cn(
+              'inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-bold transition',
+              canOpenRoute
+                ? 'bg-saffron-400 text-ink-950 hover:bg-saffron-300'
+                : 'cursor-not-allowed border border-cream-200/10 bg-cream-50/[0.04] text-cream-300/40',
+            )}
+          >
+            {restaurantMode ? <CalendarCheck size={17} /> : <Route size={17} />}
+            {restaurantMode ? 'К брони' : 'Маршрут'}
+          </Link>
+        </div>
+      </div>
+
       <MatchOverlay
         open={Boolean(activeMatch)}
         dishName={activeMatch?.dish_name ?? matchDish?.name}
         likes={activeMatch?.likes ?? 0}
         reveal={Boolean(activeMatch?.dish_name && matchDish?.blind)}
+        addedLabel={restaurantMode ? 'Добавлено в выбор' : 'Добавлено в маршрут'}
+        routeHref={canOpenRoute ? destination : undefined}
+        routeLabel={restaurantMode ? 'К брони' : 'К маршруту'}
         onClose={() => setActiveMatch(null)}
       />
     </div>

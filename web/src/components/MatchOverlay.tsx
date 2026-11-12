@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { EyeOff, Heart, Sparkles } from 'lucide-react'
+import { ArrowRight, EyeOff, Heart, Sparkles } from 'lucide-react'
 import { Button } from './ui/Button'
 import { Confetti } from './Confetti'
 
@@ -9,10 +10,22 @@ type MatchOverlayProps = {
   dishName?: string
   likes: number
   reveal?: boolean
+  addedLabel?: string
+  routeHref?: string
+  routeLabel?: string
   onClose: () => void
 }
 
-export function MatchOverlay({ open, dishName, likes, reveal, onClose }: MatchOverlayProps) {
+export function MatchOverlay({
+  open,
+  dishName,
+  likes,
+  reveal,
+  addedLabel = 'Добавлено в маршрут',
+  routeHref,
+  routeLabel = 'К маршруту',
+  onClose,
+}: MatchOverlayProps) {
   useEffect(() => {
     if (!open) return
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -56,16 +69,31 @@ export function MatchOverlay({ open, dishName, likes, reveal, onClose }: MatchOv
                 </p>
               ) : null}
               <p className="mt-3 text-sm text-cream-300/65">
-                {likes} {likes === 1 ? 'лайк' : likes < 5 ? 'лайка' : 'лайков'} в комнате. Добавим
-                точку в маршрут?
+                {likes} {likes === 1 ? 'лайк' : likes < 5 ? 'лайка' : 'лайков'} в комнате.
               </p>
-              <div className="mt-6 flex items-center justify-center gap-2 text-xs text-saffron-300">
-                <Sparkles size={15} />
-                <span>Вкус найдёт дорогу</span>
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-basil-400/25 bg-basil-400/10 px-3.5 py-1.5 text-xs font-semibold text-basil-400">
+                <Sparkles size={13} />
+                {addedLabel}
+              </p>
+              <div className="mt-7 flex flex-col gap-2">
+                {routeHref ? (
+                  <Link
+                    to={routeHref}
+                    onClick={onClose}
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-saffron-400 px-5 text-sm font-bold text-ink-950 transition hover:bg-saffron-300"
+                  >
+                    {routeLabel}
+                    <ArrowRight size={16} />
+                  </Link>
+                ) : null}
+                <Button
+                  className="w-full"
+                  variant={routeHref ? 'secondary' : 'primary'}
+                  onClick={onClose}
+                >
+                  Продолжить свайпы
+                </Button>
               </div>
-              <Button className="mt-7 w-full" onClick={onClose}>
-                Продолжить свайпы
-              </Button>
             </div>
           </motion.div>
         </motion.div>

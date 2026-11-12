@@ -41,6 +41,7 @@ func New(cfg config.Config, db *pgxpool.Pool, rdb *redis.Client, hub *ws.Hub) ht
 		r.Get("/public/config", api.publicConfig)
 
 		r.Get("/public/restaurants", api.publicRestaurants)
+		r.Get("/public/cities", api.publicCities)
 		r.Get("/public/restaurants/{slug}", api.publicRestaurant)
 		r.With(api.rateLimit("view", 60, time.Minute)).Post("/public/restaurants/{slug}/view", api.trackRestaurantView)
 		r.With(api.rateLimit("sales-lead", 5, 10*time.Minute)).Post("/sales-leads", api.createSalesLead)

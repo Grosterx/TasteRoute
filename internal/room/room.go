@@ -34,17 +34,19 @@ var (
 )
 
 type Room struct {
-	ID                string  `json:"room_id"`
-	Code              string  `json:"code"`
-	City              string  `json:"city"`
-	ParticipantsCount int     `json:"participants_count"`
-	Mode              string  `json:"mode"`
-	Source            string  `json:"source"`
-	RestaurantID      string  `json:"restaurant_id,omitempty"`
-	RestaurantName    string  `json:"restaurant_name,omitempty"`
-	RestaurantSlug    string  `json:"restaurant_slug,omitempty"`
-	StartLat          float64 `json:"-"`
-	StartLon          float64 `json:"-"`
+	ID                 string  `json:"room_id"`
+	Code               string  `json:"code"`
+	City               string  `json:"city"`
+	ParticipantsCount  int     `json:"participants_count"`
+	MatchesCount       int     `json:"matches_count"`
+	MatchedRestaurants int     `json:"matched_restaurants"`
+	Mode               string  `json:"mode"`
+	Source             string  `json:"source"`
+	RestaurantID       string  `json:"restaurant_id,omitempty"`
+	RestaurantName     string  `json:"restaurant_name,omitempty"`
+	RestaurantSlug     string  `json:"restaurant_slug,omitempty"`
+	StartLat           float64 `json:"-"`
+	StartLon           float64 `json:"-"`
 }
 
 type CreateInput struct {
@@ -145,7 +147,11 @@ func Get(ctx context.Context, db *pgxpool.Pool, code string) (Room, error) {
 	err := db.QueryRow(ctx, `
 		SELECT r.id, r.code, r.city, r.start_lat, r.start_lon, r.mode, r.source,
 		       COALESCE(r.restaurant_id::text, ''), COALESCE(rt.name, ''), COALESCE(rt.slug, ''),
-		       COUNT(p.id)
+		       COUNT(p.id),
+		       (SELECT COUNT(*) FROM matches m WHERE m.room_id = r.id),
+		       (SELECT COUNT(DISTINCT d.restaurant_id)
+		        FROM matches m JOIN dishes d ON d.id = m.dish_id
+		        WHERE m.room_id = r.id)
 		FROM rooms r
 		LEFT JOIN restaurants rt ON rt.id = r.restaurant_id
 		LEFT JOIN participants p ON p.room_id = r.id
@@ -154,6 +160,7 @@ func Get(ctx context.Context, db *pgxpool.Pool, code string) (Room, error) {
 	).Scan(
 		&r.ID, &r.Code, &r.City, &r.StartLat, &r.StartLon, &r.Mode, &r.Source,
 		&r.RestaurantID, &r.RestaurantName, &r.RestaurantSlug, &count,
+		&r.MatchesCount, &r.MatchedRestaurants,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Room{}, ErrNotFound

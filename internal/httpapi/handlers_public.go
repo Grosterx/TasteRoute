@@ -27,6 +27,16 @@ func (a *API) publicRestaurants(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, list)
 }
 
+func (a *API) publicCities(w http.ResponseWriter, r *http.Request) {
+	cities, err := restaurant.ListCities(r.Context(), a.db)
+	if err != nil {
+		slog.Error("public cities", "error", err)
+		writeError(w, http.StatusInternalServerError, "не удалось загрузить города")
+		return
+	}
+	writeJSON(w, http.StatusOK, cities)
+}
+
 func (a *API) publicRestaurant(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 	found, err := restaurant.GetPublic(r.Context(), a.db, slug)

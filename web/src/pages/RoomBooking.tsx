@@ -16,6 +16,7 @@ import {
 import { ApiError, api } from '../lib/api'
 import { getSession } from '../lib/session'
 import { bookingStatusLabel } from '../lib/restaurant'
+import type { DishRef } from '../lib/types'
 import { formatDate, formatPrice } from '../lib/utils'
 import { MatchRoulette } from '../components/MatchRoulette'
 import { Button } from '../components/ui/Button'
@@ -40,6 +41,7 @@ export function RoomBooking() {
     comment: '',
   })
   const [sent, setSent] = useState(false)
+  const [pickedDish, setPickedDish] = useState<DishRef | null>(null)
 
   const selectionQuery = useQuery({
     queryKey: ['selection', roomCode],
@@ -50,14 +52,18 @@ export function RoomBooking() {
   })
 
   const bookingMutation = useMutation({
-    mutationFn: () =>
-      api.createBooking(session!.token, {
+    mutationFn: () => {
+      const parts: string[] = []
+      if (pickedDish) parts.push(`Выбор компании: ${pickedDish.name}`)
+      if (form.comment.trim()) parts.push(form.comment.trim())
+      return api.createBooking(session!.token, {
         name: form.name.trim(),
         phone: form.phone.trim(),
         party_size: Number(form.party_size) || 1,
         requested_at: form.requested_at ? new Date(form.requested_at).toISOString() : undefined,
-        comment: form.comment.trim(),
-      }),
+        comment: parts.join('\n'),
+      })
+    },
     onSuccess: () => {
       setSent(true)
       queryClient.invalidateQueries({ queryKey: ['selection', roomCode] })
@@ -116,7 +122,7 @@ export function RoomBooking() {
           to={`/room/${roomCode}/route`}
           className="mt-6 inline-flex h-11 items-center justify-center rounded-2xl bg-saffron-400 px-5 text-sm font-bold text-ink-950"
         >
-          Открыть маршрут
+          К маршруту
         </Link>
       </div>
     )
@@ -233,7 +239,12 @@ export function RoomBooking() {
             )}
             {dishes.length >= 2 ? (
               <div className="mt-6">
-                <MatchRoulette dishes={dishes} />
+                <MatchRoulette dishes={dishes} onPick={(dish) => setPickedDish(dish)} />
+              </div>
+            ) : null}
+            {pickedDish ? (
+              <div className="mt-4 rounded-2xl border border-basil-400/20 bg-basil-400/[0.08] px-4 py-3 text-sm text-cream-200/75">
+                Выбрано: <span className="font-semibold text-cream-50">{pickedDish.name}</span>
               </div>
             ) : null}
           </div>
@@ -254,10 +265,11 @@ export function RoomBooking() {
               <div className="mt-4 rounded-3xl border border-basil-400/20 bg-basil-400/[0.08] p-6 text-center">
                 <CheckCircle2 className="mx-auto text-basil-400" size={34} />
                 <h2 className="mt-3 font-display text-2xl font-bold text-cream-50">
-                  {sent ? 'Бронь отправлена' : 'Бронь принята'}
+                  {sent ? 'Заявка принята' : 'Бронь принята'}
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-cream-300/60">
-                  Ресторан увидит заявку в своём кабинете и свяжется с вами для подтверждения.
+                  С вами свяжутся, чтобы подтвердить стол и время. Заявка уже видна в кабинете
+                  ресторана.
                 </p>
                 <Link
                   to={`/room/${roomCode}`}
@@ -270,8 +282,11 @@ export function RoomBooking() {
               <form onSubmit={submit} className="space-y-4">
                 <div className="flex items-center gap-2 text-saffron-300">
                   <CalendarClock size={18} />
-                  <h2 className="font-display text-2xl font-bold text-cream-50">Оставить бронь</h2>
+                  <h2 className="font-display text-2xl font-bold text-cream-50">Забронировать стол</h2>
                 </div>
+                <p className="text-sm leading-relaxed text-cream-300/60">
+                  Одна заявка на всю компанию. С вами свяжутся, чтобы подтвердить время и стол.
+                </p>
                 <div>
                   <label htmlFor="booking-name" className="field-label">
                     Имя
@@ -350,10 +365,10 @@ export function RoomBooking() {
                   ) : (
                     <Send size={17} />
                   )}
-                  {bookingMutation.isPending ? 'Отправляем…' : 'Отправить бронь'}
+                  {bookingMutation.isPending ? 'Отправляем…' : 'Забронировать'}
                 </Button>
                 <p className="text-center text-xs text-cream-300/35">
-                  Это заявка, а не автоматическое подтверждение. Ресторан свяжется с вами.
+                  Это заявка, а не автоматическое подтверждение. С вами свяжутся.
                 </p>
               </form>
             )}

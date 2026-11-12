@@ -174,6 +174,45 @@ func ListPublic(ctx context.Context, db *pgxpool.Pool, city string) ([]Restauran
 	return out, nil
 }
 
+// City is a public city card: name plus the average venue coordinates used by
+// the guest-side nearest-city detection.
+type City struct {
+	Name        string  `json:"name"`
+	Lat         float64 `json:"lat"`
+	Lon         float64 `json:"lon"`
+	Restaurants int     `json:"restaurants"`
+}
+
+// ListCities returns the cities that have at least one active restaurant.
+func ListCities(ctx context.Context, db *pgxpool.Pool) ([]City, error) {
+	rows, err := db.Query(ctx, `
+		SELECT city,
+		       COALESCE(AVG(NULLIF(lat, 0)), 0)::float8,
+		       COALESCE(AVG(NULLIF(lon, 0)), 0)::float8,
+		       COUNT(*)
+		FROM restaurants
+		WHERE active AND city <> ''
+		GROUP BY city
+		ORDER BY city`)
+	if err != nil {
+		return nil, fmt.Errorf("list cities: %w", err)
+	}
+	defer rows.Close()
+
+	out := make([]City, 0)
+	for rows.Next() {
+		var city City
+		if err := rows.Scan(&city.Name, &city.Lat, &city.Lon, &city.Restaurants); err != nil {
+			return nil, fmt.Errorf("scan city: %w", err)
+		}
+		out = append(out, city)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate cities: %w", err)
+	}
+	return out, nil
+}
+
 func ListAdmin(ctx context.Context, db *pgxpool.Pool) ([]Restaurant, error) {
 	rows, err := db.Query(ctx, `SELECT `+restaurantColumns+` FROM restaurants ORDER BY created_at DESC`)
 	if err != nil {

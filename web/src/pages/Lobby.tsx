@@ -31,7 +31,7 @@ export function Lobby() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <p className="eyebrow">
-          {restaurantMode ? `Комната · ${room?.restaurant_name ?? 'ресторан'}` : 'Комната готова'}
+          {restaurantMode ? `Комната · ${room?.restaurant_name ?? 'ресторан'}` : 'Городская комната'}
         </p>
         <h1 className="mt-3 font-display text-4xl font-bold leading-tight text-cream-50 sm:text-5xl">
           Привет, {session.name}.
@@ -39,6 +39,11 @@ export function Lobby() {
             {restaurantMode ? 'Выберите блюда вместе.' : 'Позовите своих.'}
           </span>
         </h1>
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-cream-300/60">
+          {restaurantMode
+            ? 'Свайпайте меню ресторана. Совпавшие блюда попадут в общий выбор, а затем — в одну бронь на всю компанию.'
+            : 'В колоде 30 блюд из ресторанов города. Когда совпадения появятся в двух разных ресторанах, TasteRoute соберёт маршрут.'}
+        </p>
       </div>
 
       <RoomChrome code={roomCode} participants={participants} connected={socket.connected} />
@@ -83,7 +88,7 @@ export function Lobby() {
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-cream-200/15 bg-cream-50/[0.04] px-6 text-sm font-semibold text-cream-100 transition hover:border-saffron-400/40"
               >
                 <CalendarCheck size={17} />
-                Бронь и выбор
+                К брони
               </Link>
             ) : (
               <Link
@@ -91,7 +96,7 @@ export function Lobby() {
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-cream-200/15 bg-cream-50/[0.04] px-6 text-sm font-semibold text-cream-100 transition hover:border-saffron-400/40"
               >
                 <Route size={17} />
-                Маршрут
+                К маршруту
               </Link>
             )}
           </div>
@@ -119,7 +124,7 @@ export function Lobby() {
           </div>
           <p className="mt-4 flex items-center gap-2 text-xs text-cream-300/40">
             <MapPinned size={14} className="text-saffron-400" />
-            {restaurantMode ? room?.restaurant_name : (room?.city ?? 'Тольятти')}
+            {restaurantMode ? room?.restaurant_name : room?.city || 'Город не выбран'}
           </p>
         </div>
       </div>

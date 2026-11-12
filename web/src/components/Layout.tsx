@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { MapPinned, Menu, ShieldCheck, Store, UtensilsCrossed, Wand2, X } from 'lucide-react'
+import { MapPinned, Menu, Store, UtensilsCrossed, Wand2, X } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { CityPicker } from './CityPicker'
 
 const navItems = [
   { to: '/', label: 'Главная', icon: MapPinned, end: true },
   { to: '/places', label: 'Рестораны', icon: UtensilsCrossed },
-  { to: '/for-restaurants', label: 'Ресторанам', icon: Store },
   { to: '/fun', label: 'Фишки', icon: Wand2 },
-  { to: '/restaurant', label: 'Кабинет', icon: MapPinned },
-  { to: '/admin', label: 'Админ', icon: ShieldCheck },
+  { to: '/restaurant', label: 'Кабинет', icon: Store },
 ]
 
 function navClass({ isActive }: { isActive: boolean }) {
@@ -134,9 +133,12 @@ export function Layout() {
               ))}
             </nav>
 
-            <p className="mt-auto pt-8 text-xs leading-relaxed text-cream-300/40">
-              TasteRoute MVP · Тольятти · 20 ресторанов
-            </p>
+            <div className="mt-auto space-y-4 pt-8">
+              <CityPicker compact />
+              <p className="text-xs leading-relaxed text-cream-300/40">
+                Свайпайте вместе. Идите туда, где совпали.
+              </p>
+            </div>
           </aside>
         </div>
       ) : null}
@@ -146,9 +148,35 @@ export function Layout() {
       </main>
 
       <footer className="border-t border-cream-200/[0.06]">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-cream-300/40 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <span>TasteRoute MVP · Тольятти · 20 ресторанов</span>
-          <span>Свайпайте вместе. Идите туда, где совпали.</span>
+        <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="max-w-md">
+              <Link to="/" className="font-display text-lg font-bold text-cream-50">
+                TasteRoute
+              </Link>
+              <p className="mt-3 text-xs leading-relaxed text-cream-300/45">
+                А рестораны получают новых гостей, групповые брони и аналитику спроса — без
+                вложений в разработку и своего приложения.
+              </p>
+            </div>
+            <nav className="flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-cream-300/55">
+              <Link to="/for-restaurants" className="transition hover:text-cream-50">
+                Ресторанам
+              </Link>
+              <Link to="/restaurant" className="transition hover:text-cream-50">
+                Кабинет
+              </Link>
+              <Link to="/admin" className="transition hover:text-cream-50">
+                Админ
+              </Link>
+            </nav>
+          </div>
+          <div className="mt-6 flex flex-col gap-3 border-t border-cream-200/[0.06] pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <CityPicker compact />
+            <span className="text-xs text-cream-300/35">
+              Свайпайте вместе. Идите туда, где совпали.
+            </span>
+          </div>
         </div>
       </footer>
     </div>

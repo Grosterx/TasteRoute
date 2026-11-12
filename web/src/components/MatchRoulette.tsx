@@ -12,13 +12,14 @@ export type RouletteDish = {
 
 type MatchRouletteProps = {
   dishes: RouletteDish[]
+  onPick?: (dish: RouletteDish) => void
 }
 
 const WHEEL_SIZE = 268
 const LABEL_RADIUS = 98
 const SEGMENT_COLORS = ['#211c17', '#332b23']
 
-export function MatchRoulette({ dishes }: MatchRouletteProps) {
+export function MatchRoulette({ dishes, onPick }: MatchRouletteProps) {
   const [rotation, setRotation] = useState(0)
   const [spinning, setSpinning] = useState(false)
   const [pending, setPending] = useState<number | null>(null)
@@ -52,6 +53,8 @@ export function MatchRoulette({ dishes }: MatchRouletteProps) {
     if (pending === null) return
     setSpinning(false)
     setWinner(pending)
+    const picked = dishes[pending]
+    if (picked) onPick?.(picked)
   }
 
   const winnerDish = winner !== null ? dishes[winner] : null

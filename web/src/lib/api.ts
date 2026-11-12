@@ -3,6 +3,7 @@ import type {
   AdminMetrics,
   AdminRestaurant,
   Booking,
+  City,
   Dish,
   JoinResult,
   Lead,
@@ -164,6 +165,9 @@ export const api = {
   publicRestaurants(city?: string) {
     const query = city ? `?city=${encodeURIComponent(city)}` : ''
     return request<Restaurant[]>(`/public/restaurants${query}`)
+  },
+  publicCities() {
+    return request<City[]>('/public/cities')
   },
   publicRestaurant(slug: string) {
     return request<PublicRestaurant>(`/public/restaurants/${encodeURIComponent(slug)}`)

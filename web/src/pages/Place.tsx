@@ -219,8 +219,8 @@ export function Place() {
               <h2 className="font-display text-xl font-bold">Собрать компанию</h2>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-cream-300/60">
-              Создайте комнату, отправьте ссылку друзьям и выберите блюда вместе. Когда совпадения
-              появятся, вы оставите бронь.
+              Создайте комнату, отправьте ссылку друзьям и свайпайте меню вместе. Совпавшие блюда
+              попадут в общий выбор — останется оставить одну бронь на всю компанию.
             </p>
             <form onSubmit={start} className="mt-5 space-y-3">
               <div>
@@ -242,7 +242,7 @@ export function Place() {
               ) : null}
               <Button type="submit" size="lg" className="w-full" disabled={busy}>
                 {busy ? <Loader2 size={18} className="animate-spin" /> : <Users size={18} />}
-                {busy ? 'Создаём комнату…' : 'Создать комнату'}
+                {busy ? 'Создаём комнату…' : 'Собрать комнату'}
               </Button>
             </form>
           </div>

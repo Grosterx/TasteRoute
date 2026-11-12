@@ -62,3 +62,21 @@ func TestMaskBlindWithoutRiddle(t *testing.T) {
 		t.Fatal("masked dish without riddle must fall back to the default hint")
 	}
 }
+
+func TestNormalizeLimit(t *testing.T) {
+	cases := []struct {
+		in   int
+		want int
+	}{
+		{in: 0, want: RoomDeckSize},
+		{in: -5, want: RoomDeckSize},
+		{in: 12, want: 12},
+		{in: 30, want: 30},
+		{in: 201, want: RoomDeckSize},
+	}
+	for _, tc := range cases {
+		if got := normalizeLimit(tc.in); got != tc.want {
+			t.Fatalf("normalizeLimit(%d) = %d, want %d", tc.in, got, tc.want)
+		}
+	}
+}

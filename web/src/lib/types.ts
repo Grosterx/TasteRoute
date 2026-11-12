@@ -3,6 +3,8 @@ export type Room = {
   code: string
   city: string
   participants_count: number
+  matches_count?: number
+  matched_restaurants?: number
   mode: 'city' | 'restaurant' | string
   source: string
   restaurant_id?: string
@@ -68,6 +70,13 @@ export type JoinResult = {
   participant_id: string
   token: string
   name: string
+}
+
+export type City = {
+  name: string
+  lat: number
+  lon: number
+  restaurants: number
 }
 
 export type Restaurant = {

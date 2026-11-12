@@ -171,11 +171,8 @@ export function Layout() {
               </Link>
             </nav>
           </div>
-          <div className="mt-6 flex flex-col gap-3 border-t border-cream-200/[0.06] pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <CityPicker compact />
-            <span className="text-xs text-cream-300/35">
-              Свайпайте вместе. Идите туда, где совпали.
-            </span>
+          <div className="mt-6 border-t border-cream-200/[0.06] pt-4 text-xs text-cream-300/35">
+            Свайпайте вместе. Идите туда, где совпали.
           </div>
         </div>
       </footer>

@@ -38,7 +38,11 @@ export function Home() {
             бронирует стол без споров.
           </p>
 
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-6">
+            <CityPicker showHint />
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-3">
             <Button size="lg" onClick={() => navigate('/places')}>
               Из конкретного места
               <ArrowRight size={18} />
@@ -61,10 +65,6 @@ export function Home() {
               Войти
             </Button>
           </form>
-
-          <div className="mt-6">
-            <CityPicker showHint />
-          </div>
 
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-xs text-cream-300/45">
             <span className="flex items-center gap-2">

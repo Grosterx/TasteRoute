@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Heart, MapPinned, Route, Sparkles, Users } from 'lucide-react'
+import { ArrowRight, Heart, MapPinned, Sparkles, Users } from 'lucide-react'
 import { funFeatures } from '../lib/fun'
 import { CityPicker } from '../components/CityPicker'
 import { FunFeatureCard } from '../components/FunFeatureCard'
+import { HeroSwipeDemo } from '../components/HeroSwipeDemo'
 import { StepsCarousel } from '../components/StepsCarousel'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -81,35 +82,7 @@ export function Home() {
 
         <div className="relative mx-auto w-full max-w-md lg:mx-0 lg:ml-auto">
           <div className="pointer-events-none absolute inset-0 rounded-[3rem] bg-saffron-400/10 blur-3xl" />
-          <div className="surface relative overflow-hidden rounded-[2rem] p-5">
-            <div className="flex items-center justify-between">
-              <span className="eyebrow">Комната ABC234</span>
-              <span className="rounded-full bg-basil-400/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-basil-400">
-                4 онлайн
-              </span>
-            </div>
-            <div className="mt-5 overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-[#4a1616] via-[#a83a2d] to-[#f2b35f] p-5 text-white">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
-                Тесто и Огонь
-              </p>
-              <h2 className="mt-2 font-display text-4xl font-bold leading-tight">Пицца Пепперони</h2>
-              <div className="mt-16 flex items-end justify-between">
-                <div className="flex gap-2">
-                  <span className="rounded-full bg-black/20 px-2.5 py-1 text-[11px]">пицца</span>
-                  <span className="rounded-full bg-black/20 px-2.5 py-1 text-[11px]">хит</span>
-                </div>
-                <span className="font-display text-2xl font-bold">590 ₽</span>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center justify-between rounded-2xl border border-cream-200/10 bg-ink-850 p-3">
-              <span className="flex items-center gap-2 text-sm text-cream-200/70">
-                <Route size={16} className="text-saffron-400" /> 2 ресторана в маршруте
-              </span>
-              <span className="flex items-center gap-1.5 text-xs text-cream-300/40">
-                <Heart size={13} className="text-tomato-400" />5 мэтчей
-              </span>
-            </div>
-          </div>
+          <HeroSwipeDemo />
         </div>
       </section>
 

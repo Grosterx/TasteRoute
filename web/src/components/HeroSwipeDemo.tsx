@@ -56,6 +56,7 @@ type GameStatus = 'idle' | 'matched' | 'done'
 export function HeroSwipeDemo() {
   const [index, setIndex] = useState(0)
   const [likes, setLikes] = useState(0)
+  const [likedDishes, setLikedDishes] = useState<DemoDish[]>([])
   const [status, setStatus] = useState<GameStatus>('idle')
   const [interacted, setInteracted] = useState(false)
   const fired = useRef(false)
@@ -78,6 +79,7 @@ export function HeroSwipeDemo() {
       () => {
         const nextLikes = likes + (liked ? 1 : 0)
         setLikes(nextLikes)
+        if (liked) setLikedDishes((prev) => [...prev, current])
         x.set(0)
         fired.current = false
 
@@ -100,6 +102,7 @@ export function HeroSwipeDemo() {
     fired.current = false
     setIndex(0)
     setLikes(0)
+    setLikedDishes([])
     setStatus('idle')
     setInteracted(false)
   }
@@ -238,32 +241,63 @@ export function HeroSwipeDemo() {
           </div>
         </>
       ) : (
-        <div className="relative mt-4 flex min-h-[374px] flex-col items-center justify-center overflow-hidden rounded-[1.5rem] border border-cream-200/10 bg-gradient-to-br from-basil-500/20 via-ink-850 to-saffron-500/15 p-6 text-center">
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduceMotion ? 0 : 0.28, ease: 'easeOut' }}
+          className={
+            status === 'matched'
+              ? 'relative mt-4 flex min-h-[374px] flex-col items-center justify-center overflow-hidden rounded-[1.5rem] border border-saffron-400/40 bg-gradient-to-br from-saffron-300 via-cream-100 to-basil-400/40 p-6 text-center'
+              : 'relative mt-4 flex min-h-[374px] flex-col items-center justify-center overflow-hidden rounded-[1.5rem] border border-cream-200/60 bg-gradient-to-br from-cream-100 via-cream-50 to-cream-200 p-6 text-center'
+          }
+        >
           <Confetti active={status === 'matched' && !reduceMotion} count={26} />
+
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(255,255,255,0.65),transparent_55%)]" />
 
           <motion.div
             initial={reduceMotion ? false : { scale: 0.7, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 320, damping: 20 }}
-            className="grid h-14 w-14 place-items-center rounded-2xl bg-basil-400/15 text-basil-400"
+            className={
+              status === 'matched'
+                ? 'relative grid h-16 w-16 place-items-center rounded-2xl bg-ink-950 text-saffron-300 shadow-card'
+                : 'relative grid h-16 w-16 place-items-center rounded-2xl bg-ink-900/10 text-ink-800'
+            }
           >
-            {status === 'matched' ? <Heart size={26} /> : <Utensils size={26} />}
+            {status === 'matched' ? <Heart size={28} /> : <Utensils size={28} />}
           </motion.div>
 
-          <p className="eyebrow mt-4">{status === 'matched' ? 'Мэтч' : 'Без мэтча'}</p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-cream-50">
+          <p className="relative mt-4 text-[11px] font-bold uppercase tracking-[0.22em] text-ink-700/70">
+            {status === 'matched' ? 'Мэтч' : 'Без мэтча'}
+          </p>
+          <h2 className="relative mt-1 font-display text-3xl font-bold text-ink-950">
             {status === 'matched' ? 'Ваши вкусы совпали' : 'Почти получилось'}
           </h2>
-          <p className="mt-2 max-w-xs text-sm leading-relaxed text-cream-300/60">
+
+          {status === 'matched' && likedDishes.length > 0 ? (
+            <div className="relative mt-3 flex flex-wrap justify-center gap-2">
+              {likedDishes.map((dish) => (
+                <span
+                  key={dish.id}
+                  className="rounded-full border border-ink-950/10 bg-white/60 px-3 py-1 text-xs font-semibold text-ink-900"
+                >
+                  {dish.name}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          <p className="relative mt-3 max-w-xs text-sm leading-relaxed text-ink-700/80">
             {status === 'matched'
               ? 'Так работает TasteRoute: друзья свайпают блюда, а совпадения превращаются в маршрут.'
               : 'Вы пролистали всю колоду, но мэтча нет. Попробуйте ещё раз или соберите комнату с друзьями.'}
           </p>
 
-          <div className="mt-6 flex w-full max-w-xs flex-col gap-2">
+          <div className="relative mt-6 flex w-full max-w-xs flex-col gap-2">
             <Link
               to="/create"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-saffron-400 px-5 text-sm font-bold text-ink-950 transition hover:bg-saffron-300"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-ink-950 px-5 text-sm font-bold text-cream-50 transition hover:bg-ink-800"
             >
               Собрать свою комнату
               <ArrowRight size={17} />
@@ -271,13 +305,13 @@ export function HeroSwipeDemo() {
             <button
               type="button"
               onClick={reset}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-cream-200/12 text-sm font-semibold text-cream-200/75 transition hover:border-saffron-400/40 hover:text-cream-50"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-ink-950/15 text-sm font-semibold text-ink-700 transition hover:border-ink-950/30 hover:bg-ink-950/5 hover:text-ink-950"
             >
               <RotateCcw size={15} />
               Ещё раз
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   )

@@ -3,6 +3,7 @@ export const bookingStatusOptions = [
   { value: 'contacted', label: 'В работе' },
   { value: 'confirmed', label: 'Подтверждена' },
   { value: 'declined', label: 'Отклонена' },
+  { value: 'cancelled', label: 'Отменена гостем' },
   { value: 'completed', label: 'Завершена' },
 ]
 

@@ -1,6 +1,6 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, CalendarCheck, Link2, MapPinned, Route, Users } from 'lucide-react'
+import { ArrowRight, CalendarCheck, Link2, MapPinned, Users, UtensilsCrossed } from 'lucide-react'
 import { api, shareURL } from '../lib/api'
 import { getSession } from '../lib/session'
 import { useRoomSocket } from '../lib/useRoomSocket'
@@ -42,7 +42,7 @@ export function Lobby() {
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-cream-300/60">
           {restaurantMode
             ? 'Свайпайте меню ресторана. Совпавшие блюда попадут в общий выбор, а затем — в одну бронь на всю компанию.'
-            : 'В колоде 30 блюд из ресторанов города. Когда совпадения появятся в двух разных ресторанах, TasteRoute соберёт маршрут.'}
+            : 'В колоде 30 блюд из ресторанов города. Когда совпадения появятся, выберите один ресторан и забронируйте стол на всю компанию.'}
         </p>
       </div>
 
@@ -92,11 +92,11 @@ export function Lobby() {
               </Link>
             ) : (
               <Link
-                to={`/room/${roomCode}/route`}
+                to={`/room/${roomCode}/choice`}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-cream-200/15 bg-cream-50/[0.04] px-6 text-sm font-semibold text-cream-100 transition hover:border-saffron-400/40"
               >
-                <Route size={17} />
-                К маршруту
+                <UtensilsCrossed size={17} />
+                Выбрать ресторан
               </Link>
             )}
           </div>

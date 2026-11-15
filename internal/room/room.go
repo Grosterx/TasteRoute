@@ -100,6 +100,17 @@ func Create(ctx context.Context, db *pgxpool.Pool, input CreateInput) (Room, err
 		input.City = found.City
 		lat = found.Lat
 		lon = found.Lon
+	} else {
+		// The room starts from the average venue point of its city, so the
+		// optional route fallback is built around the right city centre.
+		if err := db.QueryRow(ctx, `
+			SELECT COALESCE(AVG(NULLIF(lat, 0)), $2),
+			       COALESCE(AVG(NULLIF(lon, 0)), $3)
+			FROM restaurants
+			WHERE active AND city = $1`, input.City, startLat, startLon,
+		).Scan(&lat, &lon); err != nil {
+			return Room{}, fmt.Errorf("city center: %w", err)
+		}
 	}
 
 	for attempt := 0; attempt < 8; attempt++ {
@@ -232,7 +243,10 @@ func Swipe(ctx context.Context, db *pgxpool.Pool, rdb *redis.Client, roomID, roo
 		JOIN restaurants r ON r.id = d.restaurant_id
 		JOIN rooms rm ON rm.id = $2
 		WHERE d.id = $1 AND d.active AND r.active
-		  AND (rm.restaurant_id IS NULL OR d.restaurant_id = rm.restaurant_id)
+		  AND (
+		      (rm.restaurant_id IS NOT NULL AND d.restaurant_id = rm.restaurant_id)
+		      OR (rm.restaurant_id IS NULL AND r.city = rm.city)
+		  )
 	`, dishID, roomID).Scan(&dishName, &dishBlind)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return SwipeResult{}, ErrDishNotFound

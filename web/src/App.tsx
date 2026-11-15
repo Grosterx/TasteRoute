@@ -10,6 +10,9 @@ const CreateRoom = lazy(() => import('./pages/CreateRoom').then((m) => ({ defaul
 const JoinRoom = lazy(() => import('./pages/JoinRoom').then((m) => ({ default: m.JoinRoom })))
 const Lobby = lazy(() => import('./pages/Lobby').then((m) => ({ default: m.Lobby })))
 const Swipes = lazy(() => import('./pages/Swipes').then((m) => ({ default: m.Swipes })))
+const RestaurantChoice = lazy(() =>
+  import('./pages/RestaurantChoice').then((m) => ({ default: m.RestaurantChoice })),
+)
 const RoutePage = lazy(() => import('./pages/RoutePage').then((m) => ({ default: m.RoutePage })))
 const RoomBooking = lazy(() => import('./pages/RoomBooking').then((m) => ({ default: m.RoomBooking })))
 const BusinessLanding = lazy(() =>
@@ -74,6 +77,7 @@ export default function App() {
             <Route path="/r/:code" element={<JoinRoom />} />
             <Route path="/room/:code" element={<Lobby />} />
             <Route path="/room/:code/swipes" element={<Swipes />} />
+            <Route path="/room/:code/choice" element={<RestaurantChoice />} />
             <Route path="/room/:code/route" element={<RoutePage />} />
             <Route path="/room/:code/booking" element={<RoomBooking />} />
             <Route path="/for-restaurants" element={<BusinessLanding />} />

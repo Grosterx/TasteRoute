@@ -140,7 +140,11 @@ export function RestaurantBookings() {
                   <Button
                     size="sm"
                     variant="secondary"
-                    disabled={updateMutation.isPending || booking.status === 'contacted'}
+                    disabled={
+                      updateMutation.isPending ||
+                      booking.status === 'contacted' ||
+                      booking.status === 'cancelled'
+                    }
                     onClick={() =>
                       updateMutation.mutate({ bookingID: booking.id, nextStatus: 'contacted' })
                     }
@@ -149,7 +153,11 @@ export function RestaurantBookings() {
                   </Button>
                   <Button
                     size="sm"
-                    disabled={updateMutation.isPending || booking.status === 'confirmed'}
+                    disabled={
+                      updateMutation.isPending ||
+                      booking.status === 'confirmed' ||
+                      booking.status === 'cancelled'
+                    }
                     onClick={() =>
                       updateMutation.mutate({ bookingID: booking.id, nextStatus: 'confirmed' })
                     }
@@ -159,7 +167,11 @@ export function RestaurantBookings() {
                   <Button
                     size="sm"
                     variant="danger"
-                    disabled={updateMutation.isPending || booking.status === 'declined'}
+                    disabled={
+                      updateMutation.isPending ||
+                      booking.status === 'declined' ||
+                      booking.status === 'cancelled'
+                    }
                     onClick={() =>
                       updateMutation.mutate({ bookingID: booking.id, nextStatus: 'declined' })
                     }

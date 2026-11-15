@@ -14,6 +14,7 @@ import type {
   RestaurantAnalytics,
   RestaurantLoginResult,
   Room,
+  RoomSummary,
   RouteData,
   SalesLead,
   Selection,
@@ -97,6 +98,8 @@ type RoomInput = {
 }
 
 type BookingInput = {
+  restaurant_id?: string
+  dish_ids?: string[]
   name: string
   phone: string
   party_size: number
@@ -150,6 +153,12 @@ export const api = {
   catalog(code: string, token: string) {
     return request<Dish[]>(`/rooms/${encodeURIComponent(code)}/catalog`, { token })
   },
+  roomSummary(code: string, token: string) {
+    return request<RoomSummary>(`/rooms/${encodeURIComponent(code)}/summary`, { token })
+  },
+  roomBookings(code: string, token: string) {
+    return request<Booking[]>(`/rooms/${encodeURIComponent(code)}/bookings`, { token })
+  },
   route(code: string, token: string) {
     return request<RouteData>(`/rooms/${encodeURIComponent(code)}/route`, { token })
   },
@@ -158,6 +167,12 @@ export const api = {
   },
   createBooking(token: string, payload: BookingInput) {
     return request<Booking>('/bookings', { method: 'POST', body: payload, token })
+  },
+  cancelBooking(token: string, bookingID: string) {
+    return request<Booking>(`/bookings/${encodeURIComponent(bookingID)}/cancel`, {
+      method: 'POST',
+      token,
+    })
   },
   createLead(token: string, payload: { name: string; phone: string; comment: string }) {
     return request<{ ok: boolean }>('/leads', { method: 'POST', body: payload, token })

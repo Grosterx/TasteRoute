@@ -20,6 +20,16 @@ const (
 )
 
 func BuildForRoom(ctx context.Context, db *pgxpool.Pool, roomID string) (Route, error) {
+	var startLat, startLon float64
+	if err := db.QueryRow(ctx, `
+		SELECT start_lat, start_lon FROM rooms WHERE id = $1`, roomID,
+	).Scan(&startLat, &startLon); err != nil {
+		return Route{}, fmt.Errorf("load room center: %w", err)
+	}
+	if startLat == 0 && startLon == 0 {
+		startLat, startLon = cityCenterLat, cityCenterLon
+	}
+
 	rows, err := db.Query(ctx, `
 		SELECT m.dish_id, d.name, d.blind, r.id, r.name, r.address, r.lat, r.lon
 		FROM matches m
@@ -67,7 +77,7 @@ func BuildForRoom(ctx context.Context, db *pgxpool.Pool, roomID string) (Route, 
 	for _, restaurantID := range order {
 		stops = append(stops, *byRestaurant[restaurantID])
 	}
-	ordered := OrderNearest(Point{Lat: cityCenterLat, Lon: cityCenterLon}, stops, maxStops)
+	ordered := OrderNearest(Point{Lat: startLat, Lon: startLon}, stops, maxStops)
 	payload, err := json.Marshal(ordered)
 	if err != nil {
 		return Route{}, fmt.Errorf("marshal route: %w", err)

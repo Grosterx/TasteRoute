@@ -117,6 +117,78 @@ async function main() {
     ]);
   }
 
+  const summary = await request(`/rooms/${room.code}/summary`, { token: first.token });
+  assert.equal(summary.booking, null, 'new city room must not have a booking');
+  const matchedRestaurants = summary.restaurants.filter((item) => item.matches > 0);
+  assert.ok(matchedRestaurants.length >= 2, 'summary must show matches in two restaurants');
+  const chosenRestaurant = matchedRestaurants[0];
+  const otherRestaurant = matchedRestaurants[1];
+  const chosenDish = chosenRestaurant.dishes[0];
+  assert.ok(chosenDish, 'matched restaurant must expose its matched dishes');
+
+  const cityBooking = await request('/bookings', {
+    method: 'POST',
+    token: first.token,
+    body: {
+      restaurant_id: chosenRestaurant.id,
+      dish_ids: [chosenDish.dish_id],
+      name: 'Smoke City',
+      phone: '+79990000000',
+      party_size: 2,
+      comment: 'city flow booking',
+    },
+  });
+  assert.equal(cityBooking.restaurant_id, chosenRestaurant.id);
+  assert.equal(cityBooking.status, 'new');
+  assert.ok(
+    cityBooking.dishes.some((dish) => dish.dish_id === chosenDish.dish_id),
+    'city booking must keep the selected dishes',
+  );
+
+  await expectError(
+    '/bookings',
+    {
+      method: 'POST',
+      token: second.token,
+      body: {
+        restaurant_id: otherRestaurant.id,
+        dish_ids: [otherRestaurant.dishes[0].dish_id],
+        name: 'Smoke Hijack',
+        phone: '+79991111111',
+        party_size: 2,
+        comment: 'must not create a second company booking',
+      },
+    },
+    409,
+  );
+
+  const secondSummary = await request(`/rooms/${room.code}/summary`, { token: second.token });
+  assert.equal(secondSummary.booking?.id, cityBooking.id);
+  assert.notEqual(secondSummary.booking?.phone, '+79990000000');
+  assert.ok(String(secondSummary.booking?.phone).includes('*'), 'phone must be masked for guests');
+
+  await expectError(`/bookings/${cityBooking.id}/cancel`, { method: 'POST', token: second.token }, 409);
+  const cancelledBooking = await request(`/bookings/${cityBooking.id}/cancel`, {
+    method: 'POST',
+    token: first.token,
+  });
+  assert.equal(cancelledBooking.status, 'cancelled');
+
+  const rebooked = await request('/bookings', {
+    method: 'POST',
+    token: second.token,
+    body: {
+      restaurant_id: otherRestaurant.id,
+      dish_ids: otherRestaurant.dishes.map((dish) => dish.dish_id),
+      name: 'Smoke City 2',
+      phone: '+79991111111',
+      party_size: 3,
+      comment: 'rebooked after cancellation',
+    },
+  });
+  assert.equal(rebooked.restaurant_id, otherRestaurant.id);
+  assert.equal(rebooked.status, 'new');
+
   const route = await request(`/rooms/${room.code}/route`, { token: first.token });
   assert.ok(route.stops.length >= 2, 'route must contain at least two stops');
 

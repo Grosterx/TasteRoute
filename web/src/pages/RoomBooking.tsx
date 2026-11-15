@@ -111,21 +111,7 @@ export function RoomBooking() {
   }
 
   if (cityRoom) {
-    return (
-      <div className="surface mx-auto max-w-xl p-7 text-center">
-        <h1 className="font-display text-3xl font-bold text-cream-50">Это городская комната</h1>
-        <p className="mt-2 text-sm text-cream-300/60">
-          Здесь работает маршрут по нескольким ресторанам. Бронирование доступно в комнате
-          ресторана.
-        </p>
-        <Link
-          to={`/room/${roomCode}/route`}
-          className="mt-6 inline-flex h-11 items-center justify-center rounded-2xl bg-saffron-400 px-5 text-sm font-bold text-ink-950"
-        >
-          К маршруту
-        </Link>
-      </div>
-    )
+    return <Navigate to={`/room/${roomCode}/choice`} replace />
   }
 
   if (selectionQuery.error || !selection || !room || !restaurant) {

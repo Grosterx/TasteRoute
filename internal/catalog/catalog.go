@@ -70,7 +70,10 @@ func List(ctx context.Context, db *pgxpool.Pool, roomID string, limit int) ([]Di
 			JOIN restaurants r ON r.id = d.restaurant_id
 			JOIN rooms rm ON rm.id = $1
 			WHERE d.active AND r.active
-			  AND (rm.restaurant_id IS NULL OR d.restaurant_id = rm.restaurant_id)
+			  AND (
+			      (rm.restaurant_id IS NOT NULL AND d.restaurant_id = rm.restaurant_id)
+			      OR (rm.restaurant_id IS NULL AND r.city = rm.city)
+			  )
 		)
 		SELECT id, name, description, price, tags, image_url, blind, blind_riddle,
 		       restaurant_id, restaurant_name, address, cuisine

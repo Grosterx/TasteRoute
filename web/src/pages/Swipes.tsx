@@ -7,8 +7,8 @@ import {
   CheckCircle2,
   Heart,
   Loader2,
-  Route,
   Users,
+  UtensilsCrossed,
   WifiOff,
 } from 'lucide-react'
 import { api } from '../lib/api'
@@ -51,8 +51,8 @@ export function Swipes() {
     likes: roomQuery.data?.matches_count,
     restaurants: roomQuery.data?.matched_restaurants,
   })
-  const destination = `/room/${roomCode}/${restaurantMode ? 'booking' : 'route'}`
-  const canOpenRoute = restaurantMode || progress.ready
+  const destination = `/room/${roomCode}/${restaurantMode ? 'booking' : 'choice'}`
+  const canOpenDestination = restaurantMode || progress.likedCount > 0
 
   useEffect(() => {
     if (socket.lastMatch) setActiveMatch(socket.lastMatch)
@@ -138,7 +138,7 @@ export function Swipes() {
         </Link>
         <span className="flex items-center gap-1.5 text-xs text-cream-300/45">
           <Heart size={13} className="text-tomato-400" />
-          {socket.matches.length} совпадений
+          {progress.likedCount} совпадений
         </span>
       </div>
 
@@ -175,18 +175,18 @@ export function Swipes() {
             <p className="mt-2 text-sm leading-relaxed text-cream-300/60">
               {restaurantMode
                 ? 'Вы посмотрели всё меню. Теперь можно оставить бронь с общими блюдами.'
-                : progress.ready
-                  ? 'Совпадений в разных ресторанах хватает — собирайте маршрут.'
-                  : 'Пока мало совпадений в разных ресторанах. Позовите друзей или пройдите колоду ещё раз.'}
+                : progress.likedCount > 0
+                  ? 'Совпадения есть — выберите один ресторан и забронируйте стол на всю компанию.'
+                  : 'Пока нет совпадений. Позовите друзей или пройдите колоду ещё раз.'}
             </p>
             <div className="mt-6 flex flex-col gap-3">
-              {canOpenRoute ? (
+              {canOpenDestination ? (
                 <Link
                   to={destination}
                   className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-saffron-400 px-6 text-sm font-bold text-ink-950 transition hover:bg-saffron-300"
                 >
-                  {restaurantMode ? <CalendarCheck size={17} /> : <Route size={17} />}
-                  {restaurantMode ? 'К брони' : 'Собрать маршрут'}
+                  {restaurantMode ? <CalendarCheck size={17} /> : <UtensilsCrossed size={17} />}
+                  {restaurantMode ? 'К брони' : 'Выбрать ресторан'}
                 </Link>
               ) : (
                 <Link
@@ -221,36 +221,31 @@ export function Swipes() {
               <span>
                 {restaurantMode
                   ? 'выбор блюд'
-                  : `${progress.restaurantCount} из ${progress.minRestaurants} ресторанов`}
+                  : `${progress.restaurantCount} ресторанов с совпадениями`}
               </span>
             </p>
             {!restaurantMode ? (
-              <div className="mt-1.5 h-1.5 w-36 overflow-hidden rounded-full bg-cream-50/[0.08]">
-                <div
-                  className="h-full rounded-full bg-saffron-400 transition-all duration-300"
-                  style={{
-                    width: `${Math.min(100, (progress.restaurantCount / progress.minRestaurants) * 100)}%`,
-                  }}
-                />
-              </div>
+              <p className="mt-1 text-[11px] text-cream-300/40">
+                Один ресторан на всю компанию
+              </p>
             ) : null}
           </div>
           <Link
             to={destination}
-            aria-disabled={!canOpenRoute}
-            tabIndex={canOpenRoute ? undefined : -1}
+            aria-disabled={!canOpenDestination}
+            tabIndex={canOpenDestination ? undefined : -1}
             onClick={(event) => {
-              if (!canOpenRoute) event.preventDefault()
+              if (!canOpenDestination) event.preventDefault()
             }}
             className={cn(
               'inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-bold transition',
-              canOpenRoute
+              canOpenDestination
                 ? 'bg-saffron-400 text-ink-950 hover:bg-saffron-300'
                 : 'cursor-not-allowed border border-cream-200/10 bg-cream-50/[0.04] text-cream-300/40',
             )}
           >
-            {restaurantMode ? <CalendarCheck size={17} /> : <Route size={17} />}
-            {restaurantMode ? 'К брони' : 'Маршрут'}
+            {restaurantMode ? <CalendarCheck size={17} /> : <UtensilsCrossed size={17} />}
+            {restaurantMode ? 'К брони' : 'Выбрать ресторан'}
           </Link>
         </div>
       </div>
@@ -260,9 +255,9 @@ export function Swipes() {
         dishName={activeMatch?.dish_name ?? matchDish?.name}
         likes={activeMatch?.likes ?? 0}
         reveal={Boolean(activeMatch?.dish_name && matchDish?.blind)}
-        addedLabel={restaurantMode ? 'Добавлено в выбор' : 'Добавлено в маршрут'}
-        routeHref={canOpenRoute ? destination : undefined}
-        routeLabel={restaurantMode ? 'К брони' : 'К маршруту'}
+        addedLabel={restaurantMode ? 'Добавлено в выбор' : 'Добавлено в совпадения'}
+        routeHref={canOpenDestination ? destination : undefined}
+        routeLabel={restaurantMode ? 'К брони' : 'Выбрать ресторан'}
         onClose={() => setActiveMatch(null)}
       />
     </div>

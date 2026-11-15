@@ -29,6 +29,7 @@ export type Dish = {
 export type DishRef = {
   dish_id: string
   name: string
+  price?: number
   blind?: boolean
 }
 
@@ -170,6 +171,30 @@ export type Selection = {
   room: Room
   restaurant: Restaurant
   dishes: SelectionDish[]
+  booking: Booking | null
+}
+
+export type SummaryRestaurant = {
+  id: string
+  slug: string
+  name: string
+  description: string
+  address: string
+  city: string
+  cuisine: string
+  phone: string
+  hours: string
+  image_url: string
+  cover_url: string
+  lat: number
+  lon: number
+  matches: number
+  dishes: SelectionDish[]
+}
+
+export type RoomSummary = {
+  room: Room
+  restaurants: SummaryRestaurant[]
   booking: Booking | null
 }
 

@@ -63,6 +63,12 @@ export function PairCompatibility() {
     setSearchParams({}, { replace: true })
   }
 
+  // The widget sits far down /fun, so scrolling to the document top hides the
+  // handoff and result cards. Keep the viewport on the test section instead.
+  const scrollToPair = () => {
+    document.getElementById('pair')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   const answer = (optionId: string) => {
     const question = pairQuestions[step]
     if (stage === 'first') {
@@ -74,7 +80,7 @@ export function PairCompatibility() {
       }
       setStage('handoff')
       setStep(0)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      scrollToPair()
       return
     }
 
@@ -86,7 +92,7 @@ export function PairCompatibility() {
     }
     setStage('result')
     setSearchParams({ pair: encodePairAnswers(firstAnswers, next) }, { replace: true })
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollToPair()
   }
 
   const firstProfile = pairProfile(firstAnswers)

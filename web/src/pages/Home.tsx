@@ -4,7 +4,7 @@ import { ArrowRight, Heart, MapPinned, Sparkles, Users } from 'lucide-react'
 import { funFeatures } from '../lib/fun'
 import { CityPicker } from '../components/CityPicker'
 import { FunFeatureCard } from '../components/FunFeatureCard'
-import { HeroSwipeDemo } from '../components/HeroSwipeDemo'
+import { HeroTasteShowcase } from '../components/HeroTasteShowcase'
 import { StepsCarousel } from '../components/StepsCarousel'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -82,7 +82,7 @@ export function Home() {
 
         <div className="relative mx-auto w-full max-w-md lg:mx-0 lg:ml-auto">
           <div className="pointer-events-none absolute inset-0 rounded-[3rem] bg-saffron-400/10 blur-3xl" />
-          <HeroSwipeDemo />
+          <HeroTasteShowcase />
         </div>
       </section>
 

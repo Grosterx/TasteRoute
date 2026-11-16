@@ -14,6 +14,9 @@ const RestaurantChoice = lazy(() =>
   import('./pages/RestaurantChoice').then((m) => ({ default: m.RestaurantChoice })),
 )
 const RoutePage = lazy(() => import('./pages/RoutePage').then((m) => ({ default: m.RoutePage })))
+const RoomEvening = lazy(() =>
+  import('./pages/RoomEvening').then((m) => ({ default: m.RoomEvening })),
+)
 const RoomBooking = lazy(() => import('./pages/RoomBooking').then((m) => ({ default: m.RoomBooking })))
 const BusinessLanding = lazy(() =>
   import('./pages/BusinessLanding').then((m) => ({ default: m.BusinessLanding })),
@@ -79,6 +82,7 @@ export default function App() {
             <Route path="/room/:code/swipes" element={<Swipes />} />
             <Route path="/room/:code/choice" element={<RestaurantChoice />} />
             <Route path="/room/:code/route" element={<RoutePage />} />
+            <Route path="/room/:code/evening" element={<RoomEvening />} />
             <Route path="/room/:code/booking" element={<RoomBooking />} />
             <Route path="/for-restaurants" element={<BusinessLanding />} />
             <Route path="/places" element={<Places />} />

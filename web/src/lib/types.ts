@@ -42,9 +42,29 @@ export type Stop = {
   dishes: DishRef[]
 }
 
+export type RouteLeg = {
+  from_restaurant_id: string
+  to_restaurant_id: string
+  distance_km: number
+  walk_min: number
+  drive_min: number
+  taxi_min: number
+  transit_min: number
+}
+
+export type RouteTotals = {
+  distance_km: number
+  walk_min: number
+  drive_min: number
+  taxi_min: number
+  transit_min: number
+}
+
 export type RouteData = {
   route_id: string
   stops: Stop[]
+  legs: RouteLeg[]
+  total: RouteTotals
 }
 
 export type Lead = {
@@ -162,7 +182,41 @@ export type Booking = {
   comment: string
   status: string
   source: string
+  chain_id?: string
+  stop_order?: number
+  route_id?: string
+  restaurant_name?: string
+  restaurant_address?: string
+  restaurant_city?: string
+  chain_size?: number
   dishes: DishRef[]
+  created_at: string
+  updated_at: string
+}
+
+export type ChainStop = {
+  booking_id: string
+  restaurant_id: string
+  restaurant_name: string
+  restaurant_address: string
+  restaurant_city: string
+  stop_order: number
+  requested_at?: string | null
+  status: string
+  dishes: DishRef[]
+  created_at: string
+}
+
+export type BookingChain = {
+  id: string
+  route_id?: string
+  participant_id: string
+  name: string
+  phone: string
+  party_size: number
+  comment: string
+  status: string
+  stops: ChainStop[]
   created_at: string
   updated_at: string
 }
@@ -196,6 +250,7 @@ export type RoomSummary = {
   room: Room
   restaurants: SummaryRestaurant[]
   booking: Booking | null
+  chain: BookingChain | null
 }
 
 export type SalesLead = {

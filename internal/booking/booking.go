@@ -20,6 +20,7 @@ var (
 	ErrNotFound     = errors.New("booking not found")
 	ErrOwnedByOther = errors.New("booking belongs to another participant")
 	ErrLocked       = errors.New("booking is already processed")
+	ErrActiveChain  = errors.New("room has an active booking chain")
 )
 
 var validStatuses = map[string]bool{
@@ -55,9 +56,18 @@ type Booking struct {
 	Comment       string     `json:"comment"`
 	Status        string     `json:"status"`
 	Source        string     `json:"source"`
-	Dishes        []DishRef  `json:"dishes"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+
+	ChainID           string `json:"chain_id,omitempty"`
+	StopOrder         int    `json:"stop_order,omitempty"`
+	RouteID           string `json:"route_id,omitempty"`
+	RestaurantName    string `json:"restaurant_name,omitempty"`
+	RestaurantAddress string `json:"restaurant_address,omitempty"`
+	RestaurantCity    string `json:"restaurant_city,omitempty"`
+	ChainSize         int    `json:"chain_size,omitempty"`
+
+	Dishes    []DishRef `json:"dishes"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type CreateInput struct {
@@ -121,11 +131,25 @@ func Create(ctx context.Context, db *pgxpool.Pool, roomID, participantID, restau
 		return Booking{}, fmt.Errorf("lock room: %w", err)
 	}
 
+	// A room can have either one active single booking or one active evening
+	// chain, never both.
+	var activeChainID string
+	err = tx.QueryRow(ctx, `
+		SELECT chain_id FROM bookings
+		WHERE room_id = $1 AND chain_id IS NOT NULL AND status = ANY($2)
+		LIMIT 1`, roomID, activeBookingStatuses).Scan(&activeChainID)
+	switch {
+	case err == nil:
+		return Booking{}, ErrActiveChain
+	case !errors.Is(err, pgx.ErrNoRows):
+		return Booking{}, fmt.Errorf("find active chain: %w", err)
+	}
+
 	var activeID, activeParticipant, activeRestaurant, activeStatus string
 	err = tx.QueryRow(ctx, `
 		SELECT id, participant_id, restaurant_id, status
 		FROM bookings
-		WHERE room_id = $1 AND status = ANY($2)
+		WHERE room_id = $1 AND chain_id IS NULL AND status = ANY($2)
 		ORDER BY created_at DESC
 		LIMIT 1
 		FOR UPDATE`, roomID, activeBookingStatuses,
@@ -168,6 +192,7 @@ func Create(ctx context.Context, db *pgxpool.Pool, roomID, participantID, restau
 				UPDATE bookings SET
 					participant_id = $2, name = $3, phone = $4, party_size = $5,
 					requested_at = $6, comment = $7, source = $8, status = 'new',
+					chain_id = NULL, stop_order = NULL, route_id = NULL,
 					created_at = now(), updated_at = now()
 				WHERE id = $1`,
 				bookingID, participantID, input.Name, input.Phone, input.PartySize,
@@ -353,7 +378,7 @@ func ListByRoom(ctx context.Context, db *pgxpool.Pool, roomID string) ([]Booking
 
 func LatestForRoom(ctx context.Context, db *pgxpool.Pool, roomID string) (Booking, error) {
 	row := db.QueryRow(ctx, bookingSelect+`
-		WHERE b.room_id = $1
+		WHERE b.room_id = $1 AND b.chain_id IS NULL
 		ORDER BY b.created_at DESC
 		LIMIT 1`, roomID)
 	item, err := scanBooking(row)
@@ -429,7 +454,7 @@ func Cancel(ctx context.Context, db *pgxpool.Pool, roomID, participantID, bookin
 	var ownerID, status string
 	err := db.QueryRow(ctx, `
 		SELECT participant_id, status FROM bookings
-		WHERE id = $1 AND room_id = $2`, bookingID, roomID).Scan(&ownerID, &status)
+		WHERE id = $1 AND room_id = $2 AND chain_id IS NULL`, bookingID, roomID).Scan(&ownerID, &status)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Booking{}, ErrNotFound
 	}
@@ -466,7 +491,11 @@ func MaskPhone(phone string) string {
 const bookingSelect = `
 	SELECT b.id, b.restaurant_id, b.room_id, r.code, b.participant_id,
 	       b.name, b.phone, b.party_size, b.requested_at, COALESCE(b.comment, ''),
-	       b.status, b.source,
+	       b.status, b.source, b.chain_id, b.stop_order, b.route_id,
+	       rest.name, rest.address, rest.city,
+	       CASE WHEN b.chain_id IS NULL THEN 1 ELSE (
+	           SELECT count(DISTINCT b2.stop_order) FROM bookings b2 WHERE b2.chain_id = b.chain_id
+	       ) END,
 	       COALESCE((
 	           SELECT jsonb_agg(jsonb_build_object(
 	               'dish_id', d.id, 'name', d.name, 'price', d.price,
@@ -488,18 +517,32 @@ const bookingSelect = `
 	       ), '[]'::jsonb)) AS dishes,
 	       b.created_at, b.updated_at
 	FROM bookings b
-	JOIN rooms r ON r.id = b.room_id`
+	JOIN rooms r ON r.id = b.room_id
+	JOIN restaurants rest ON rest.id = b.restaurant_id`
 
 func scanBooking(row pgx.Row) (Booking, error) {
 	var b Booking
+	var chainID, routeID *string
+	var stopOrder *int
 	var dishesJSON []byte
 	err := row.Scan(
 		&b.ID, &b.RestaurantID, &b.RoomID, &b.RoomCode, &b.ParticipantID,
 		&b.Name, &b.Phone, &b.PartySize, &b.RequestedAt, &b.Comment,
-		&b.Status, &b.Source, &dishesJSON, &b.CreatedAt, &b.UpdatedAt,
+		&b.Status, &b.Source, &chainID, &stopOrder, &routeID,
+		&b.RestaurantName, &b.RestaurantAddress, &b.RestaurantCity, &b.ChainSize,
+		&dishesJSON, &b.CreatedAt, &b.UpdatedAt,
 	)
 	if err != nil {
 		return Booking{}, err
+	}
+	if chainID != nil {
+		b.ChainID = *chainID
+	}
+	if stopOrder != nil {
+		b.StopOrder = *stopOrder
+	}
+	if routeID != nil {
+		b.RouteID = *routeID
 	}
 	if len(dishesJSON) > 0 {
 		if err := json.Unmarshal(dishesJSON, &b.Dishes); err != nil {

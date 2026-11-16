@@ -18,6 +18,8 @@ type Stop struct {
 type Route struct {
 	RouteID string `json:"route_id"`
 	Stops   []Stop `json:"stops"`
+	Legs    []Leg  `json:"legs"`
+	Total   Totals `json:"total"`
 }
 
 // OrderNearest orders stops greedily by distance from start and returns at most max stops.

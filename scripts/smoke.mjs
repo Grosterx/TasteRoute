@@ -191,6 +191,113 @@ async function main() {
 
   const route = await request(`/rooms/${room.code}/route`, { token: first.token });
   assert.ok(route.stops.length >= 2, 'route must contain at least two stops');
+  assert.equal(route.legs.length, route.stops.length - 1, 'route must expose a leg per pair of stops');
+  assert.ok(route.total.walk_min > 0 && route.total.taxi_min > 0, 'route must expose travel totals');
+  const stableRoute = await request(`/rooms/${room.code}/route`, { token: first.token });
+  assert.equal(stableRoute.route_id, route.route_id, 'route must stay stable between requests');
+  assert.deepEqual(
+    stableRoute.stops.map((stop) => stop.restaurant_id),
+    route.stops.map((stop) => stop.restaurant_id),
+    'route stops must not shift during the flow',
+  );
+  const refreshedRoute = await request(`/rooms/${room.code}/route?refresh=1`, { token: first.token });
+  assert.equal(refreshedRoute.route_id, route.route_id, 'refresh must keep the stored route id');
+
+  await request(`/bookings/${rebooked.id}/cancel`, { method: 'POST', token: second.token });
+
+  const start = Date.now() + 2 * 60 * 60 * 1000;
+  const stopTimes = route.stops.map((_, index) => new Date(start + index * 2 * 60 * 60 * 1000).toISOString());
+  const chain = await request('/bookings/chain', {
+    method: 'POST',
+    token: first.token,
+    body: {
+      route_id: route.route_id,
+      name: 'Smoke Evening',
+      phone: '+79990000000',
+      party_size: 4,
+      comment: 'smoke chain',
+      stops: route.stops.map((stop, index) => ({
+        restaurant_id: stop.restaurant_id,
+        dish_ids: stop.dishes.slice(0, 2).map((dish) => dish.dish_id),
+        requested_at: stopTimes[index],
+      })),
+    },
+  });
+  assert.equal(chain.stops.length, route.stops.length, 'chain must keep every route stop');
+  assert.equal(chain.status, 'pending');
+  assert.ok(chain.stops.every((stop) => stop.status === 'new'), 'chain stops start as new');
+  assert.ok(
+    chain.stops.every((stop, index) => stop.stop_order === index + 1),
+    'chain stops must keep the route order',
+  );
+
+  await expectError(
+    '/bookings',
+    {
+      method: 'POST',
+      token: first.token,
+      body: {
+        restaurant_id: chosenRestaurant.id,
+        name: 'Smoke Evening',
+        phone: '+79990000000',
+        party_size: 2,
+        comment: 'must not create a single booking while the evening is active',
+      },
+    },
+    409,
+  );
+
+  const chainForGuest = await request(`/rooms/${room.code}/summary`, { token: second.token });
+  assert.equal(chainForGuest.chain?.id, chain.id);
+  assert.ok(String(chainForGuest.chain?.phone).includes('*'), 'chain phone must be masked for guests');
+  assert.notEqual(chainForGuest.booking?.status, 'new', 'summary must not report an active single booking');
+
+  const cancelledStop = await request(
+    `/bookings/chain/${chain.id}/stops/${chain.stops[1].booking_id}/cancel`,
+    { method: 'POST', token: first.token },
+  );
+  assert.equal(cancelledStop.status, 'partial');
+  assert.equal(cancelledStop.stops[1].status, 'cancelled');
+  assert.equal(cancelledStop.stops[0].status, 'new', 'other stops must stay active');
+
+  const replacedStop = await request(`/bookings/chain/${chain.id}/stops`, {
+    method: 'POST',
+    token: first.token,
+    body: {
+      replace_booking_id: chain.stops[1].booking_id,
+      stop_order: chain.stops[1].stop_order,
+      restaurant_id: chain.stops[1].restaurant_id,
+      requested_at: new Date(start + 3 * 60 * 60 * 1000).toISOString(),
+      dish_ids: chain.stops[1].dishes.map((dish) => dish.dish_id),
+    },
+  });
+  assert.equal(replacedStop.status, 'pending');
+  assert.equal(replacedStop.stops[1].status, 'new', 'replacement must reopen the stop');
+
+  await expectError(
+    `/bookings/chain/${chain.id}/cancel`,
+    { method: 'POST', token: second.token },
+    409,
+  );
+  const cancelledChain = await request(`/bookings/chain/${chain.id}/cancel`, {
+    method: 'POST',
+    token: first.token,
+  });
+  assert.equal(cancelledChain.status, 'cancelled');
+  assert.ok(cancelledChain.stops.every((stop) => stop.status === 'cancelled'));
+
+  const afterChain = await request(`/rooms/${room.code}/summary`, { token: first.token });
+  assert.equal(afterChain.chain?.status, 'cancelled');
+  assert.ok(
+    !afterChain.booking || ['cancelled', 'declined'].includes(afterChain.booking.status),
+    'after cancelling the evening no single booking must stay active',
+  );
+
+  const adminChainBookings = await request('/admin/bookings', { admin: adminToken });
+  const chainStop = adminChainBookings.find((item) => item.id === chain.stops[0].booking_id);
+  assert.ok(chainStop, 'chain stop must be visible to admin');
+  assert.equal(chainStop.chain_id, chain.id);
+  assert.equal(chainStop.stop_order, 1);
 
   const lead = await request('/leads', {
     method: 'POST',
@@ -414,7 +521,7 @@ async function main() {
     guestASocket.close();
     guestBSocket.close();
     console.log(
-      `smoke ok: room=${room.code} stops=${route.stops.length} lead=${stored.id} restaurant_room=${restaurantRoom.code} booking=${booking.id}`,
+      `smoke ok: room=${room.code} stops=${route.stops.length} chain=${chain.id} lead=${stored.id} restaurant_room=${restaurantRoom.code} booking=${booking.id}`,
     );
   } finally {
     if (smokeRestaurantID) {

@@ -19,6 +19,22 @@ export function bookingStatusLabel(status: string) {
   return bookingStatusOptions.find((item) => item.value === status)?.label ?? status
 }
 
+export const chainStatusOptions = [
+  { value: 'pending', label: 'Ждём подтверждения' },
+  { value: 'partial', label: 'Часть точек подтверждена' },
+  { value: 'confirmed', label: 'Вечер подтверждён' },
+  { value: 'declined', label: 'Рестораны отказали' },
+  { value: 'cancelled', label: 'Вечер отменён' },
+]
+
+export function chainStatusLabel(status: string) {
+  return chainStatusOptions.find((item) => item.value === status)?.label ?? status
+}
+
+export function isActiveBookingStatus(status: string) {
+  return status === 'new' || status === 'contacted' || status === 'confirmed'
+}
+
 export function salesStatusLabel(status: string) {
   return salesStatusOptions.find((item) => item.value === status)?.label ?? status
 }

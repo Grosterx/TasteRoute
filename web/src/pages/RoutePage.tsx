@@ -1,23 +1,43 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
   CalendarCheck,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Dices,
   EyeOff,
+  Footprints,
   Loader2,
   MapPin,
+  RefreshCw,
   Route as RouteIcon,
   Send,
+  Car,
+  Bus,
   Utensils,
 } from 'lucide-react'
 import { ApiError, api } from '../lib/api'
 import { getSession } from '../lib/session'
-import type { DishRef } from '../lib/types'
+import { bookingStatusLabel, isActiveBookingStatus } from '../lib/restaurant'
+import type { DishRef, Stop } from '../lib/types'
+import {
+  defaultTravelMode,
+  dwellMinutes,
+  formatDistance,
+  formatMinutes,
+  legMinutes,
+  localDatetimeValue,
+  nextHalfHour,
+  suggestStopTimes,
+  totalMinutes,
+  travelModes,
+  type TravelMode,
+} from '../lib/travel'
 import { cn } from '../lib/utils'
 import { MatchRoulette } from '../components/MatchRoulette'
 import { RouteMap } from '../components/RouteMap'
@@ -26,24 +46,35 @@ import { Input } from '../components/ui/Input'
 import { Textarea } from '../components/ui/Textarea'
 
 const steps = [
-  { id: 1, title: 'Карта', icon: MapPin },
-  { id: 2, title: 'Блюда', icon: Utensils },
+  { id: 1, title: 'Блюда', icon: Utensils },
+  { id: 2, title: 'Карта', icon: MapPin },
   { id: 3, title: 'Что едим', icon: Dices },
   { id: 4, title: 'Бронь', icon: CalendarCheck },
 ]
+
+const modeIcons: Record<TravelMode, typeof Footprints> = {
+  walk: Footprints,
+  taxi: Car,
+  drive: Car,
+  transit: Bus,
+}
 
 export function RoutePage() {
   const { code = '' } = useParams()
   const roomCode = code.toUpperCase()
   const session = getSession()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [step, setStep] = useState(1)
-  const [pickedDish, setPickedDish] = useState<DishRef | null>(null)
+  const [selection, setSelection] = useState<Record<string, string[]>>({})
   const [name, setName] = useState(session?.name ?? '')
   const [phone, setPhone] = useState('')
   const [comment, setComment] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [sent, setSent] = useState(false)
-  const [leadError, setLeadError] = useState<string | null>(null)
+  const [partySize, setPartySize] = useState(0)
+  const [mode, setMode] = useState<TravelMode | null>(null)
+  const [startAt, setStartAt] = useState(() => localDatetimeValue(nextHalfHour()))
+  const [manualTimes, setManualTimes] = useState<Record<number, string>>({})
+  const [formError, setFormError] = useState<string | null>(null)
 
   const routeQuery = useQuery({
     queryKey: ['route', roomCode],
@@ -51,30 +82,105 @@ export function RoutePage() {
     enabled: Boolean(session && session.roomCode === roomCode),
     retry: false,
   })
+  const summaryQuery = useQuery({
+    queryKey: ['room-summary', roomCode],
+    queryFn: () => api.roomSummary(roomCode, session!.token),
+    enabled: Boolean(session && session.roomCode === roomCode),
+    retry: false,
+    refetchInterval: 10_000,
+  })
+
+  const refreshRoute = useMutation({
+    mutationFn: () => api.route(roomCode, session!.token, true),
+    onSuccess: (fresh) => {
+      queryClient.setQueryData(['route', roomCode], fresh)
+      setSelection({})
+      setManualTimes({})
+      queryClient.invalidateQueries({ queryKey: ['room-summary', roomCode] })
+    },
+  })
+
+  const chainMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof api.createChain>[1]) =>
+      api.createChain(session!.token, payload),
+    onSuccess: (created) => {
+      queryClient.setQueryData(['room-summary', roomCode], (current: unknown) =>
+        current && typeof current === 'object' ? { ...current, chain: created } : current,
+      )
+      queryClient.invalidateQueries({ queryKey: ['room-summary', roomCode] })
+      navigate(`/room/${roomCode}/evening`)
+    },
+  })
 
   if (!session || session.roomCode !== roomCode) {
     return <Navigate to={`/r/${roomCode}`} replace />
   }
 
-  const submitLead = async (event: FormEvent) => {
-    event.preventDefault()
-    setBusy(true)
-    setLeadError(null)
-    try {
-      const parts: string[] = []
-      if (pickedDish) parts.push(`Выбор компании: ${pickedDish.name}`)
-      if (comment.trim()) parts.push(comment.trim())
-      await api.createLead(session.token, {
-        name: name.trim(),
-        phone: phone.trim(),
-        comment: parts.join('\n'),
-      })
-      setSent(true)
-    } catch (err) {
-      setLeadError(err instanceof Error ? err.message : 'Не удалось отправить заявку')
-    } finally {
-      setBusy(false)
-    }
+  const chain = summaryQuery.data?.chain ?? null
+  const singleBooking = summaryQuery.data?.booking ?? null
+  const activeChain = Boolean(chain && isActiveBookingStatus(chain.status))
+  const activeSingleBooking = Boolean(singleBooking && isActiveBookingStatus(singleBooking.status))
+
+  if (activeChain && chain) {
+    return (
+      <div className="surface mx-auto max-w-xl p-7 text-center sm:p-9">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-basil-400/15 text-basil-400">
+          <RouteIcon size={28} />
+        </div>
+        <h1 className="mt-5 font-display text-3xl font-bold text-cream-50">Вечер уже собран</h1>
+        <p className="mt-3 text-sm leading-relaxed text-cream-300/60">
+          Компания забронировала {chain.stops.length} точки маршрута. Статусы подтверждений и замену
+          отказавших точек можно посмотреть на экране вечера.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Link
+            to={`/room/${roomCode}/evening`}
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-saffron-400 px-6 text-sm font-bold text-ink-950 transition hover:bg-saffron-300"
+          >
+            <CalendarCheck size={17} />
+            К вечеру
+          </Link>
+          <Link
+            to={`/room/${roomCode}`}
+            className="inline-flex h-12 items-center justify-center rounded-2xl border border-cream-200/15 px-6 text-sm font-semibold text-cream-100"
+          >
+            В комнату
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (activeSingleBooking && singleBooking) {
+    return (
+      <div className="surface mx-auto max-w-xl p-7 text-center sm:p-9">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-saffron-400/10 text-saffron-300">
+          <CalendarCheck size={28} />
+        </div>
+        <h1 className="mt-5 font-display text-3xl font-bold text-cream-50">
+          У компании уже есть бронь
+        </h1>
+        <p className="mt-3 text-sm leading-relaxed text-cream-300/60">
+          Сейчас забронирован один ресторан, статус — {bookingStatusLabel(singleBooking.status)}.
+          Чтобы собрать вечер из нескольких точек, сначала отмените эту бронь.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Link
+            to={`/room/${roomCode}/choice`}
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-saffron-400 px-6 text-sm font-bold text-ink-950 transition hover:bg-saffron-300"
+          >
+            <CalendarCheck size={17} />
+            К брони
+          </Link>
+          <Link
+            to={`/room/${roomCode}`}
+            className="inline-flex h-12 items-center justify-center rounded-2xl border border-cream-200/15 px-6 text-sm font-semibold text-cream-100"
+          >
+            В комнату
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   const conflict = routeQuery.error instanceof ApiError && routeQuery.error.status === 409
@@ -157,6 +263,8 @@ export function RoutePage() {
   }
 
   const route = routeQuery.data
+  const participants = summaryQuery.data?.room.participants_count ?? 1
+  const partyDefault = partySize || participants || 1
   const dishCount = route.stops.reduce((total, stop) => total + stop.dishes.length, 0)
   const routeDishes = route.stops.flatMap((stop) => stop.dishes)
   const mapPoints = route.stops.map((stop) => ({
@@ -168,15 +276,114 @@ export function RoutePage() {
     dishes: stop.dishes.map((dish) => dish.name),
   }))
 
+  const dishIDsFor = (stop: Stop) =>
+    selection[stop.restaurant_id] ?? stop.dishes.map((dish) => dish.dish_id)
+
+  const toggleDish = (stop: Stop, dish: DishRef) => {
+    const current = dishIDsFor(stop)
+    setSelection((value) => ({
+      ...value,
+      [stop.restaurant_id]: current.includes(dish.dish_id)
+        ? current.filter((id) => id !== dish.dish_id)
+        : [...current, dish.dish_id],
+    }))
+  }
+
+  const applyRoulette = (dish: DishRef) => {
+    const stop = route.stops.find((item) => item.dishes.some((entry) => entry.dish_id === dish.dish_id))
+    if (!stop) return
+    const current = dishIDsFor(stop)
+    setSelection((value) => ({
+      ...value,
+      [stop.restaurant_id]: current.includes(dish.dish_id)
+        ? current
+        : [...current, dish.dish_id],
+    }))
+  }
+
+  const pickDish = (dish: DishRef) => {
+    const stop = route.stops.find((item) => item.dishes.some((entry) => entry.dish_id === dish.dish_id))
+    if (!stop) return
+    setSelection((value) => ({ ...value, [stop.restaurant_id]: [dish.dish_id] }))
+  }
+
+  const travelMode = mode || defaultTravelMode(route.legs)
+  const startDate = new Date(startAt)
+  const start = Number.isNaN(startDate.getTime()) ? nextHalfHour() : startDate
+  const autoTimes = suggestStopTimes(route.legs, travelMode, start)
+  const timeValue = (index: number) => {
+    if (index === 0) return startAt
+    return manualTimes[index] ?? localDatetimeValue(autoTimes[index] ?? start)
+  }
+
+  const changeMode = (next: TravelMode) => {
+    setMode(next)
+    setManualTimes({})
+  }
+
+  const changeStart = (value: string) => {
+    setStartAt(value)
+    setManualTimes({})
+  }
+
+  const submitChain = (event: FormEvent) => {
+    event.preventDefault()
+    setFormError(null)
+
+    const times = route.stops.map((_, index) => {
+      const raw = timeValue(index)
+      const parsed = raw ? new Date(raw) : null
+      return parsed && !Number.isNaN(parsed.getTime()) ? parsed : null
+    })
+    if (route.stops.length > 1 && times.some((value) => !value)) {
+      setFormError('Укажите время для каждой точки маршрута')
+      return
+    }
+    for (let i = 1; i < times.length; i += 1) {
+      const previous = times[i - 1]
+      const current = times[i]
+      if (previous && current && current.getTime() <= previous.getTime()) {
+        setFormError('Время точек должно идти по возрастанию: следующая точка позже предыдущей')
+        return
+      }
+    }
+
+    chainMutation.mutate({
+      route_id: route.route_id,
+      name: name.trim(),
+      phone: phone.trim(),
+      party_size: partyDefault,
+      comment: comment.trim(),
+      stops: route.stops.map((stop, index) => ({
+        restaurant_id: stop.restaurant_id,
+        dish_ids: dishIDsFor(stop),
+        requested_at: times[index]?.toISOString(),
+      })),
+    })
+  }
+
+  const minTime = localDatetimeValue(new Date(Date.now() + 5 * 60_000))
+
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-10">
-      <Link
-        to={`/room/${roomCode}`}
-        className="inline-flex items-center gap-2 text-sm text-cream-300/55 transition hover:text-cream-50"
-      >
-        <ArrowLeft size={16} />
-        В комнату
-      </Link>
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          to={`/room/${roomCode}`}
+          className="inline-flex items-center gap-2 text-sm text-cream-300/55 transition hover:text-cream-50"
+        >
+          <ArrowLeft size={16} />
+          В комнату
+        </Link>
+        <button
+          type="button"
+          onClick={() => refreshRoute.mutate()}
+          disabled={refreshRoute.isPending}
+          className="inline-flex items-center gap-2 text-xs font-semibold text-cream-300/55 transition hover:text-saffron-300 disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={cn(refreshRoute.isPending && 'animate-spin')} />
+          Обновить маршрут
+        </button>
+      </div>
 
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
@@ -234,7 +441,7 @@ export function RoutePage() {
         })}
       </div>
 
-      {step === 2 ? (
+      {step === 1 ? (
         <div className="space-y-3">
           {route.stops.map((stop, index) => (
             <div key={stop.restaurant_id} className="surface relative p-5 sm:p-6">
@@ -288,189 +495,318 @@ export function RoutePage() {
         </div>
       ) : null}
 
-      {step === 1 ? (
+      {step === 2 ? (
         <div className="space-y-3">
           <div className="surface p-4 sm:p-5">
             <RouteMap points={mapPoints} connect numbered />
           </div>
+          <div className="surface space-y-2 p-4 sm:p-5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cream-300/45">
+              Дорога между точками
+            </p>
+            {route.legs.map((leg, index) => {
+              const Icon = modeIcons[travelMode]
+              return (
+                <div
+                  key={`${leg.from_restaurant_id}-${leg.to_restaurant_id}`}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-cream-200/[0.07] bg-cream-50/[0.02] px-3 py-2 text-xs text-cream-200/70"
+                >
+                  <span>
+                    {index + 1} → {index + 2}: {formatDistance(leg.distance_km)}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-cream-300/55">
+                    <Icon size={13} className="text-saffron-400" />
+                    {formatMinutes(legMinutes(leg, travelMode))}
+                  </span>
+                </div>
+              )
+            })}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {travelModes.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => changeMode(item.value)}
+                  className={cn(
+                    'rounded-full px-3 py-1.5 text-[11px] font-semibold transition',
+                    travelMode === item.value
+                      ? 'bg-saffron-400 text-ink-950'
+                      : 'border border-cream-200/10 text-cream-300/55 hover:text-cream-50',
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <p className="px-2 text-xs leading-relaxed text-cream-300/35">
-            Все точки упорядочены от центра города по кратчайшему расстоянию. Нажмите на маркер,
-            чтобы увидеть блюда.
+            Все точки упорядочены от центра города по кратчайшему расстоянию. Время в пути
+            приблизительное: без онлайн-навигации, по прямой с запасом.
           </p>
         </div>
       ) : null}
 
       {step === 3 ? (
         <div className="space-y-4">
-          <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="surface p-5 sm:p-6">
-              <p className="eyebrow">Что едим</p>
-              <h2 className="mt-2 font-display text-2xl font-bold text-cream-50">Выберите блюдо</h2>
-              <p className="mt-2 text-sm leading-relaxed text-cream-300/60">
-                Ткните в любое совпадение или доверьтесь рулетке. Выбор попадёт в заявку.
-              </p>
-              <div className="mt-4 space-y-2">
-                {routeDishes.map((dish) => {
-                  const active = pickedDish?.dish_id === dish.dish_id
-                  return (
-                    <button
-                      key={dish.dish_id}
-                      type="button"
-                      onClick={() => setPickedDish(dish)}
-                      className={cn(
-                        'flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm transition',
-                        active
-                          ? 'border-saffron-400/40 bg-saffron-400/[0.08] text-cream-50'
-                          : 'border-cream-200/[0.08] bg-cream-50/[0.025] text-cream-200/75 hover:border-saffron-400/25',
-                      )}
-                    >
-                      {dish.blind ? (
-                        <EyeOff size={15} className="shrink-0 text-saffron-400" />
-                      ) : (
-                        <Utensils size={15} className="shrink-0 text-saffron-400" />
-                      )}
-                      <span className="min-w-0 flex-1 truncate">{dish.name}</span>
-                      {active ? (
-                        <CheckCircle2 size={16} className="shrink-0 text-saffron-300" />
-                      ) : null}
-                    </button>
-                  )
-                })}
-              </div>
+          <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="space-y-3">
+              {route.stops.map((stop) => (
+                <div key={stop.restaurant_id} className="surface p-5">
+                  <h2 className="font-display text-xl font-bold text-cream-50">{stop.name}</h2>
+                  <p className="mt-1 text-xs text-cream-300/45">
+                    {dishIDsFor(stop).length} из {stop.dishes.length} блюд в заявке
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {stop.dishes.length === 0 ? (
+                      <p className="text-xs text-cream-300/40">
+                        Совпадений в этом ресторане нет — можно забронировать стол без блюд.
+                      </p>
+                    ) : (
+                      stop.dishes.map((dish) => {
+                        const picked = dishIDsFor(stop).includes(dish.dish_id)
+                        return (
+                          <button
+                            key={dish.dish_id}
+                            type="button"
+                            onClick={() => toggleDish(stop, dish)}
+                            className={cn(
+                              'flex w-full items-center gap-3 rounded-2xl border px-4 py-2.5 text-left text-sm transition',
+                              picked
+                                ? 'border-saffron-400/40 bg-saffron-400/[0.08] text-cream-50'
+                                : 'border-cream-200/[0.08] bg-cream-50/[0.025] text-cream-200/75 hover:border-saffron-400/25',
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                'grid h-5 w-5 shrink-0 place-items-center rounded-md border',
+                                picked
+                                  ? 'border-saffron-400 bg-saffron-400 text-ink-950'
+                                  : 'border-cream-200/25',
+                              )}
+                            >
+                              {picked ? <Check size={13} strokeWidth={3} /> : null}
+                            </span>
+                            {dish.blind ? (
+                              <EyeOff size={14} className="shrink-0 text-saffron-400" />
+                            ) : (
+                              <Utensils size={14} className="shrink-0 text-saffron-400" />
+                            )}
+                            <span className="min-w-0 flex-1 truncate">{dish.name}</span>
+                          </button>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
 
             {routeDishes.length >= 2 ? (
-              <MatchRoulette dishes={routeDishes} onPick={(dish) => setPickedDish(dish)} />
+              <div className="space-y-3">
+                <MatchRoulette dishes={routeDishes} onPick={(dish) => applyRoulette(dish)} />
+                <div className="surface p-4 text-xs leading-relaxed text-cream-300/50">
+                  Рулетка добавляет блюдо к выбранной точке. Можно ткнуть в любое блюдо вручную —
+                  ресторан увидит его в своей брони.
+                </div>
+              </div>
             ) : null}
           </div>
 
-          {pickedDish ? (
-            <div className="rounded-2xl border border-basil-400/20 bg-basil-400/[0.08] px-4 py-3 text-sm text-cream-200/75">
-              Выбрано: <span className="font-semibold text-cream-50">{pickedDish.name}</span>
-            </div>
-          ) : null}
+          <div className="surface flex flex-wrap items-center justify-between gap-3 p-4">
+            <p className="text-sm text-cream-200/70">
+              В заявке {route.stops.reduce((total, stop) => total + dishIDsFor(stop).length, 0)} блюд
+              в {route.stops.length} ресторанах
+            </p>
+            <button
+              type="button"
+              onClick={() => setStep(4)}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-saffron-300 hover:text-saffron-400"
+            >
+              К времени и брони
+              <ChevronRight size={15} />
+            </button>
+          </div>
         </div>
       ) : null}
 
       {step === 4 ? (
-        <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="surface p-6">
-            <p className="eyebrow">Ваш маршрут</p>
-            <h2 className="mt-2 font-display text-2xl font-bold text-cream-50">
-              {route.stops.length} остановки
-            </h2>
-            <ol className="mt-4 space-y-3">
-              {route.stops.map((stop, index) => (
-                <li key={stop.restaurant_id} className="flex gap-3">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-saffron-400 text-sm font-black text-ink-950">
-                    {index + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-cream-100">{stop.name}</p>
-                    <p className="text-xs text-cream-300/45">{stop.address}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-cream-300/55">
-                      {stop.dishes.map((dish) => dish.name).join(' · ')}
-                    </p>
-                  </div>
-                </li>
+        <form onSubmit={submitChain} className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="surface space-y-4 p-6">
+            <div>
+              <p className="eyebrow">Как поедем</p>
+              <h2 className="mt-2 font-display text-2xl font-bold text-cream-50">
+                {route.stops.length} точки за вечер
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-cream-300/60">
+                В каждом месте примерно {dwellMinutes} минут. Время в пути подставляется
+                автоматически — его можно поправить.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {travelModes.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => changeMode(item.value)}
+                  className={cn(
+                    'rounded-full px-3 py-1.5 text-[11px] font-semibold transition',
+                    travelMode === item.value
+                      ? 'bg-saffron-400 text-ink-950'
+                      : 'border border-cream-200/10 text-cream-300/55 hover:text-cream-50',
+                  )}
+                >
+                  {item.label}
+                </button>
               ))}
+            </div>
+
+            <ol className="space-y-3">
+              {route.stops.map((stop, index) => {
+                const leg = index > 0 ? route.legs[index - 1] : null
+                const Icon = modeIcons[travelMode]
+                const stopTime = timeValue(index)
+                return (
+                  <li key={stop.restaurant_id}>
+                    {leg ? (
+                      <div className="mb-2 ml-9 flex flex-wrap items-center gap-2 text-[11px] text-cream-300/45">
+                        <Icon size={13} className="text-saffron-400" />
+                        {formatDistance(leg.distance_km)} · {formatMinutes(legMinutes(leg, travelMode))}
+                      </div>
+                    ) : null}
+                    <div className="flex gap-3">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-saffron-400 text-sm font-black text-ink-950">
+                        {index + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-cream-100">{stop.name}</p>
+                        <p className="text-xs text-cream-300/45">{stop.address}</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <Clock size={14} className="shrink-0 text-saffron-400" />
+                          <Input
+                            type="datetime-local"
+                            aria-label={`Время точки ${index + 1}`}
+                            min={minTime}
+                            value={stopTime}
+                            onChange={(event) =>
+                              index === 0
+                                ? changeStart(event.target.value)
+                                : setManualTimes((value) => ({
+                                    ...value,
+                                    [index]: event.target.value,
+                                  }))
+                            }
+                            required={route.stops.length > 1}
+                            className="h-10"
+                          />
+                        </div>
+                        <p className="mt-1.5 text-[11px] leading-relaxed text-cream-300/40">
+                          {stop.dishes
+                            .filter((dish) => dishIDsFor(stop).includes(dish.dish_id))
+                            .map((dish) => dish.name)
+                            .join(' · ') || 'Без выбранных блюд'}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                )
+              })}
             </ol>
-            {pickedDish ? (
-              <div className="mt-5 rounded-2xl border border-saffron-400/20 bg-saffron-400/[0.06] px-4 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-saffron-300/80">
-                  Выбор компании
-                </p>
-                <p className="mt-1 font-display text-lg font-bold text-cream-50">
-                  {pickedDish.name}
-                </p>
+
+            {route.legs.length > 0 ? (
+              <div className="rounded-2xl border border-cream-200/[0.07] bg-cream-50/[0.025] px-4 py-3 text-xs leading-relaxed text-cream-300/50">
+                Всего в пути {formatMinutes(totalMinutes(route.total, travelMode))} и{' '}
+                {formatDistance(route.total.distance_km)} между точками.
               </div>
             ) : null}
           </div>
 
-          <div className="surface p-6">
-            {sent ? (
-              <div className="text-center">
-                <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-basil-400/15 text-basil-400">
-                  <CheckCircle2 size={28} />
-                </div>
-                <h2 className="mt-4 font-display text-2xl font-bold text-cream-50">
-                  Заявка принята
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-cream-300/60">
-                  С вами свяжутся, чтобы подтвердить стол и время. Заявка уже видна в кабинете
-                  ресторана.
-                </p>
-                <Link
-                  to={`/room/${roomCode}`}
-                  className="mt-5 inline-flex h-11 items-center justify-center rounded-2xl border border-cream-200/15 px-5 text-sm font-semibold text-cream-100"
-                >
-                  В комнату
-                </Link>
-              </div>
-            ) : (
-              <form onSubmit={submitLead} className="space-y-4">
-                <div>
-                  <p className="eyebrow">Финальный шаг</p>
-                  <h2 className="mt-2 font-display text-2xl font-bold text-cream-50">
-                    Забронировать стол
-                  </h2>
-                  <p className="mt-2 text-sm leading-relaxed text-cream-300/60">
-                    Одна заявка на всю компанию. С вами свяжутся, чтобы подтвердить время и стол.
-                  </p>
-                </div>
-                <div>
-                  <label htmlFor="lead-name" className="field-label">
-                    Имя
-                  </label>
-                  <Input
-                    id="lead-name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    maxLength={80}
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="lead-phone" className="field-label">
-                    Телефон
-                  </label>
-                  <Input
-                    id="lead-phone"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    placeholder="+7 999 000-00-00"
-                    maxLength={40}
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="lead-comment" className="field-label">
-                    Комментарий
-                  </label>
-                  <Textarea
-                    id="lead-comment"
-                    value={comment}
-                    onChange={(event) => setComment(event.target.value)}
-                    placeholder="Во сколько планируете, сколько вас…"
-                    maxLength={500}
-                  />
-                </div>
-                {leadError ? (
-                  <p className="rounded-2xl border border-tomato-400/20 bg-tomato-500/10 px-4 py-3 text-sm text-tomato-400">
-                    {leadError}
-                  </p>
-                ) : null}
-                <Button type="submit" className="w-full" disabled={busy}>
-                  {busy ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
-                  {busy ? 'Отправляем…' : 'Забронировать'}
-                </Button>
-                <p className="text-center text-xs text-cream-300/35">
-                  Это заявка, а не автоматическое подтверждение. С вами свяжутся.
-                </p>
-              </form>
-            )}
+          <div className="surface space-y-4 p-6">
+            <div>
+              <p className="eyebrow">Финальный шаг</p>
+              <h2 className="mt-2 font-display text-2xl font-bold text-cream-50">
+                Забронировать вечер
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-cream-300/60">
+                Одна заявка на всю компанию: рестораны получат свои точки и подтвердят их по
+                отдельности.
+              </p>
+            </div>
+            <div>
+              <label htmlFor="chain-name" className="field-label">
+                Имя
+              </label>
+              <Input
+                id="chain-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={80}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="chain-phone" className="field-label">
+                Телефон
+              </label>
+              <Input
+                id="chain-phone"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder="+7 999 000-00-00"
+                maxLength={40}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="chain-party" className="field-label">
+                Гостей
+              </label>
+              <Input
+                id="chain-party"
+                type="number"
+                min="1"
+                max="20"
+                value={partyDefault}
+                onChange={(event) => setPartySize(Number(event.target.value))}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="chain-comment" className="field-label">
+                Комментарий
+              </label>
+              <Textarea
+                id="chain-comment"
+                value={comment}
+                onChange={(event) => setComment(event.target.value)}
+                placeholder="Повод, пожелания по столу…"
+                maxLength={500}
+              />
+            </div>
+            {formError ? (
+              <p className="rounded-2xl border border-tomato-400/20 bg-tomato-500/10 px-4 py-3 text-sm text-tomato-400">
+                {formError}
+              </p>
+            ) : null}
+            {chainMutation.error ? (
+              <p className="rounded-2xl border border-tomato-400/20 bg-tomato-500/10 px-4 py-3 text-sm text-tomato-400">
+                {chainMutation.error instanceof Error
+                  ? chainMutation.error.message
+                  : 'Не удалось отправить вечер'}
+              </p>
+            ) : null}
+            <Button type="submit" className="w-full" disabled={chainMutation.isPending}>
+              {chainMutation.isPending ? (
+                <Loader2 size={17} className="animate-spin" />
+              ) : (
+                <Send size={17} />
+              )}
+              {chainMutation.isPending ? 'Отправляем…' : 'Забронировать вечер'}
+            </Button>
+            <p className="text-center text-xs text-cream-300/35">
+              Это заявки, а не автоматическое подтверждение. Каждый ресторан подтверждает свою точку.
+            </p>
           </div>
-        </div>
+        </form>
       ) : null}
 
       <div className="flex items-center justify-between gap-3">
@@ -483,32 +819,19 @@ export function RoutePage() {
           Назад
         </Button>
         {step < 4 ? (
-          step === 3 ? (
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setPickedDish(null)
-                  setStep(4)
-                }}
-              >
-                Без выбора
-              </Button>
-              <Button onClick={() => setStep(4)} disabled={!pickedDish}>
-                К брони
-                <ChevronRight size={16} />
-              </Button>
-            </div>
-          ) : (
-            <Button onClick={() => setStep((value) => Math.min(4, value + 1))}>
-              Далее
-              <ChevronRight size={16} />
-            </Button>
-          )
+          <Button onClick={() => setStep((value) => Math.min(4, value + 1))}>
+            Далее
+            <ChevronRight size={16} />
+          </Button>
         ) : (
-          <span className="text-xs text-cream-300/35">Заявка на всю компанию</span>
+          <span className="text-xs text-cream-300/35">Одна компания — один вечер</span>
         )}
       </div>
+
+      <p className="flex items-center justify-center gap-2 text-center text-xs text-cream-300/35">
+        <CheckCircle2 size={13} className="text-basil-400" />
+        Время в пути приблизительное — уточняйте в навигаторе.
+      </p>
     </div>
   )
 }

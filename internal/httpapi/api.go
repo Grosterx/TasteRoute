@@ -61,6 +61,10 @@ func New(cfg config.Config, db *pgxpool.Pool, rdb *redis.Client, hub *ws.Hub) ht
 			r.Get("/rooms/{code}/bookings", api.roomBookings)
 			r.With(api.rateLimit("booking", 20, 10*time.Minute)).Post("/bookings", api.createBooking)
 			r.With(api.rateLimit("booking", 20, 10*time.Minute)).Post("/bookings/{bookingID}/cancel", api.cancelBooking)
+			r.With(api.rateLimit("booking", 20, 10*time.Minute)).Post("/bookings/chain", api.createChainBooking)
+			r.With(api.rateLimit("booking", 20, 10*time.Minute)).Post("/bookings/chain/{chainID}/cancel", api.cancelChainBooking)
+			r.With(api.rateLimit("booking", 20, 10*time.Minute)).Post("/bookings/chain/{chainID}/stops/{bookingID}/cancel", api.cancelChainStop)
+			r.With(api.rateLimit("booking", 20, 10*time.Minute)).Post("/bookings/chain/{chainID}/stops", api.addChainStop)
 			r.With(api.rateLimit("lead", 10, 10*time.Minute)).Post("/leads", api.createLead)
 		})
 

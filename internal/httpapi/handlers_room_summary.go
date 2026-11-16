@@ -36,6 +36,7 @@ type roomSummaryResponse struct {
 	Room        roompkg.Room        `json:"room"`
 	Restaurants []summaryRestaurant `json:"restaurants"`
 	Booking     *booking.Booking    `json:"booking"`
+	Chain       *booking.Chain      `json:"chain"`
 }
 
 func (a *API) roomSummary(w http.ResponseWriter, r *http.Request) {
@@ -82,10 +83,28 @@ func (a *API) roomSummary(w http.ResponseWriter, r *http.Request) {
 		existing = &b
 	}
 
+	var chain *booking.Chain
+	if found.Mode == "city" {
+		evening, err := booking.GetChainForRoom(r.Context(), a.db, found.ID)
+		switch {
+		case errors.Is(err, booking.ErrNotFound):
+		case err != nil:
+			slog.Error("summary chain", "error", err)
+			writeError(w, http.StatusInternalServerError, "не удалось загрузить вечерний маршрут")
+			return
+		default:
+			if evening.ParticipantID != claims.ParticipantID {
+				evening.Phone = booking.MaskPhone(evening.Phone)
+			}
+			chain = &evening
+		}
+	}
+
 	writeJSON(w, http.StatusOK, roomSummaryResponse{
 		Room:        found,
 		Restaurants: restaurants,
 		Booking:     existing,
+		Chain:       chain,
 	})
 }
 

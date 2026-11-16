@@ -114,6 +114,11 @@ export function RestaurantBookings() {
                     <span className="rounded-full bg-cream-50/[0.04] px-2.5 py-1 text-[10px] text-cream-300/55">
                       {sourceLabel(booking.source)}
                     </span>
+                    {booking.chain_id ? (
+                      <span className="rounded-full bg-basil-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-basil-400">
+                        маршрут · точка {booking.stop_order ?? 1} из {booking.chain_size ?? 1}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-cream-200/70">
                     <a

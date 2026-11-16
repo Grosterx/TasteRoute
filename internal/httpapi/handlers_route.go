@@ -38,7 +38,8 @@ func (a *API) route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	built, err := routepkg.BuildForRoom(r.Context(), a.db, found.ID)
+	refresh := r.URL.Query().Get("refresh") == "1"
+	built, err := routepkg.BuildForRoom(r.Context(), a.db, found.ID, refresh)
 	if errors.Is(err, routepkg.ErrNotEnoughMatches) {
 		writeError(w, http.StatusConflict, "нужно минимум два совпадения в разных ресторанах")
 		return

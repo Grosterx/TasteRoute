@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Grosterx/tasteroute/internal/id"
@@ -19,7 +20,20 @@ const (
 	maxStops      = 3
 )
 
-func BuildForRoom(ctx context.Context, db *pgxpool.Pool, roomID string) (Route, error) {
+// BuildForRoom returns the evening route for a room. By default it reuses the
+// stored route so stops do not shift under guests while they pick dishes and
+// fill in the booking form. Pass refresh to rebuild from the current matches.
+func BuildForRoom(ctx context.Context, db *pgxpool.Pool, roomID string, refresh bool) (Route, error) {
+	if !refresh {
+		stored, ok, err := loadStored(ctx, db, roomID)
+		if err != nil {
+			return Route{}, err
+		}
+		if ok {
+			return stored, nil
+		}
+	}
+
 	var startLat, startLon float64
 	if err := db.QueryRow(ctx, `
 		SELECT start_lat, start_lon FROM rooms WHERE id = $1`, roomID,
@@ -94,5 +108,76 @@ func BuildForRoom(ctx context.Context, db *pgxpool.Pool, roomID string) (Route, 
 	if err != nil {
 		return Route{}, fmt.Errorf("save route: %w", err)
 	}
-	return Route{RouteID: routeID, Stops: ordered}, nil
+
+	legs, total := BuildLegs(ordered)
+	return Route{RouteID: routeID, Stops: ordered, Legs: legs, Total: total}, nil
+}
+
+func loadStored(ctx context.Context, db *pgxpool.Pool, roomID string) (Route, bool, error) {
+	var routeID string
+	var payload []byte
+	err := db.QueryRow(ctx, `
+		SELECT id, stops FROM routes WHERE room_id = $1`, roomID).Scan(&routeID, &payload)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Route{}, false, nil
+	}
+	if err != nil {
+		return Route{}, false, fmt.Errorf("load stored route: %w", err)
+	}
+
+	var stops []Stop
+	if err := json.Unmarshal(payload, &stops); err != nil {
+		return Route{}, false, nil
+	}
+	if len(stops) < 2 {
+		return Route{}, false, nil
+	}
+
+	valid, err := storedStopsValid(ctx, db, roomID, stops)
+	if err != nil {
+		return Route{}, false, err
+	}
+	if !valid {
+		return Route{}, false, nil
+	}
+
+	legs, total := BuildLegs(stops)
+	return Route{RouteID: routeID, Stops: stops, Legs: legs, Total: total}, true, nil
+}
+
+func storedStopsValid(ctx context.Context, db *pgxpool.Pool, roomID string, stops []Stop) (bool, error) {
+	seen := make(map[string]struct{}, len(stops))
+	for _, stop := range stops {
+		if stop.RestaurantID == "" || len(stop.Dishes) == 0 {
+			return false, nil
+		}
+		if _, ok := seen[stop.RestaurantID]; ok {
+			return false, nil
+		}
+		seen[stop.RestaurantID] = struct{}{}
+
+		dishIDs := make([]string, 0, len(stop.Dishes))
+		for _, dish := range stop.Dishes {
+			if dish.DishID == "" {
+				return false, nil
+			}
+			dishIDs = append(dishIDs, dish.DishID)
+		}
+
+		var validDishes int
+		err := db.QueryRow(ctx, `
+			SELECT count(*)
+			FROM dishes d
+			JOIN matches m ON m.dish_id = d.id AND m.room_id = $1
+			JOIN restaurants r ON r.id = d.restaurant_id
+			WHERE d.restaurant_id = $2 AND d.active AND r.active
+			  AND d.id = ANY($3::uuid[])`, roomID, stop.RestaurantID, dishIDs).Scan(&validDishes)
+		if err != nil {
+			return false, fmt.Errorf("validate stored route: %w", err)
+		}
+		if validDishes != len(dishIDs) {
+			return false, nil
+		}
+	}
+	return true, nil
 }

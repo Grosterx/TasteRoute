@@ -192,6 +192,8 @@ export function RestaurantChoice() {
 
   const isOwner = booking ? booking.participant_id === session.participantId : false
   const activeBooking = Boolean(booking && activeStatuses.has(booking.status))
+  const chain = summary?.chain ?? null
+  const activeChain = Boolean(chain && activeStatuses.has(chain.status))
   const matchedRestaurants = restaurants.filter((item) => item.matches > 0)
   const otherRestaurants = restaurants.filter((item) => item.matches === 0)
   const routeReady = matchedRestaurants.length >= 2
@@ -523,6 +525,22 @@ export function RestaurantChoice() {
           {routeReady ? ' Или соберите маршрут по нескольким ресторанам.' : ''}
         </p>
       </div>
+
+      {activeChain && chain ? (
+        <Link
+          to={`/room/${roomCode}/evening`}
+          className="flex items-center justify-between gap-3 rounded-2xl border border-basil-400/20 bg-basil-400/[0.06] px-4 py-3 text-sm text-cream-200/75 transition hover:border-basil-400/40"
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            <RouteIcon size={17} className="shrink-0 text-basil-400" />
+            <span className="min-w-0">
+              Компания уже собирает вечер по маршруту из {chain.stops.length} точек. Одна бронь
+              одного ресторана станет доступна после отмены вечера.
+            </span>
+          </span>
+          <ChevronRight size={16} className="shrink-0 text-basil-400" />
+        </Link>
+      ) : null}
 
       {routeReady ? (
         <Link

@@ -82,6 +82,9 @@ func (a *API) createBooking(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, booking.ErrLocked):
 		writeError(w, http.StatusConflict, "сначала отмените текущую бронь, потом выбирайте другой ресторан")
 		return
+	case errors.Is(err, booking.ErrActiveChain):
+		writeError(w, http.StatusConflict, "вечер уже забронирован по маршруту: отмените его, чтобы забронировать одно место")
+		return
 	case err != nil:
 		slog.Error("create booking", "error", err)
 		writeError(w, http.StatusInternalServerError, "не удалось создать бронь")

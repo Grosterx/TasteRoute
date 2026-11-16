@@ -1,8 +1,17 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, CalendarCheck, Link2, MapPinned, Users, UtensilsCrossed } from 'lucide-react'
+import {
+  ArrowRight,
+  CalendarCheck,
+  Link2,
+  MapPinned,
+  Route as RouteIcon,
+  Users,
+  UtensilsCrossed,
+} from 'lucide-react'
 import { api, shareURL } from '../lib/api'
 import { getSession } from '../lib/session'
+import { bookingStatusLabel, chainStatusLabel, isActiveBookingStatus } from '../lib/restaurant'
 import { useRoomSocket } from '../lib/useRoomSocket'
 import { RoomChrome } from '../components/RoomChrome'
 import { Button } from '../components/ui/Button'
@@ -22,6 +31,22 @@ export function Lobby() {
   const room = roomQuery.data
   const restaurantMode = room?.mode === 'restaurant'
   const shareLink = shareURL(roomCode)
+  const summaryQuery = useQuery({
+    queryKey: ['room-summary', roomCode],
+    queryFn: () => api.roomSummary(roomCode, session!.token),
+    enabled: Boolean(session && session.roomCode === roomCode),
+    retry: false,
+    refetchInterval: 15_000,
+  })
+  const activeChain =
+    summaryQuery.data?.chain &&
+    isActiveBookingStatus(summaryQuery.data.chain.status)
+      ? summaryQuery.data.chain
+      : null
+  const activeBooking =
+    summaryQuery.data?.booking && isActiveBookingStatus(summaryQuery.data.booking.status)
+      ? summaryQuery.data.booking
+      : null
 
   if (!session || session.roomCode !== roomCode) {
     return <Navigate to={`/r/${roomCode}`} replace />
@@ -47,6 +72,64 @@ export function Lobby() {
       </div>
 
       <RoomChrome code={roomCode} participants={participants} connected={socket.connected} />
+
+      {activeChain ? (
+        <Link
+          to={`/room/${roomCode}/evening`}
+          className="surface flex items-center justify-between gap-4 p-5 transition hover:border-basil-400/40"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-basil-400/15 text-basil-400">
+              <RouteIcon size={20} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-basil-400">
+                Вечер по маршруту · {chainStatusLabel(activeChain.status)}
+              </p>
+              <p className="mt-0.5 truncate font-display text-lg font-bold text-cream-50">
+                {activeChain.stops.map((stop) => stop.restaurant_name).join(' → ')}
+              </p>
+              <p className="mt-0.5 text-xs text-cream-300/45">
+                {activeChain.stops.length} точки · {activeChain.party_size} гостей
+              </p>
+            </div>
+          </div>
+          <ArrowRight size={18} className="shrink-0 text-basil-400" />
+        </Link>
+      ) : activeBooking ? (
+        <Link
+          to={restaurantMode ? `/room/${roomCode}/booking` : `/room/${roomCode}/choice`}
+          className="surface flex items-center justify-between gap-4 p-5 transition hover:border-saffron-400/40"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-saffron-400/10 text-saffron-300">
+              <CalendarCheck size={20} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-saffron-300">
+                Бронь · {bookingStatusLabel(activeBooking.status)}
+              </p>
+              <p className="mt-0.5 truncate font-display text-lg font-bold text-cream-50">
+                {activeBooking.restaurant_name ||
+                  room?.restaurant_name ||
+                  'Ресторан компании'}
+              </p>
+              <p className="mt-0.5 text-xs text-cream-300/45">
+                {activeBooking.party_size} гостей
+                {activeBooking.requested_at
+                  ? ` · ${new Date(activeBooking.requested_at).toLocaleString('ru-RU', {
+                      day: '2-digit',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}`
+                  : ''}
+              </p>
+            </div>
+          </div>
+          <ArrowRight size={18} className="shrink-0 text-saffron-400" />
+        </Link>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
         <div className="surface p-6">

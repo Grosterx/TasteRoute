@@ -3,6 +3,7 @@ import type {
   AdminMetrics,
   AdminRestaurant,
   Booking,
+  BookingChain,
   City,
   Dish,
   JoinResult,
@@ -107,6 +108,21 @@ type BookingInput = {
   comment: string
 }
 
+type ChainStopInput = {
+  restaurant_id: string
+  dish_ids: string[]
+  requested_at?: string
+}
+
+type ChainInput = {
+  route_id: string
+  name: string
+  phone: string
+  party_size: number
+  comment: string
+  stops: ChainStopInput[]
+}
+
 type SalesLeadInput = {
   restaurant_name: string
   contact_name: string
@@ -159,8 +175,9 @@ export const api = {
   roomBookings(code: string, token: string) {
     return request<Booking[]>(`/rooms/${encodeURIComponent(code)}/bookings`, { token })
   },
-  route(code: string, token: string) {
-    return request<RouteData>(`/rooms/${encodeURIComponent(code)}/route`, { token })
+  route(code: string, token: string, refresh = false) {
+    const query = refresh ? '?refresh=1' : ''
+    return request<RouteData>(`/rooms/${encodeURIComponent(code)}/route${query}`, { token })
   },
   selection(code: string, token: string) {
     return request<Selection>(`/rooms/${encodeURIComponent(code)}/selection`, { token })
@@ -171,6 +188,32 @@ export const api = {
   cancelBooking(token: string, bookingID: string) {
     return request<Booking>(`/bookings/${encodeURIComponent(bookingID)}/cancel`, {
       method: 'POST',
+      token,
+    })
+  },
+  createChain(token: string, payload: ChainInput) {
+    return request<BookingChain>('/bookings/chain', { method: 'POST', body: payload, token })
+  },
+  cancelChain(token: string, chainID: string) {
+    return request<BookingChain>(`/bookings/chain/${encodeURIComponent(chainID)}/cancel`, {
+      method: 'POST',
+      token,
+    })
+  },
+  cancelChainStop(token: string, chainID: string, bookingID: string) {
+    return request<BookingChain>(
+      `/bookings/chain/${encodeURIComponent(chainID)}/stops/${encodeURIComponent(bookingID)}/cancel`,
+      { method: 'POST', token },
+    )
+  },
+  addChainStop(
+    token: string,
+    chainID: string,
+    payload: ChainStopInput & { replace_booking_id?: string; stop_order?: number },
+  ) {
+    return request<BookingChain>(`/bookings/chain/${encodeURIComponent(chainID)}/stops`, {
+      method: 'POST',
+      body: payload,
       token,
     })
   },
